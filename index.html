@@ -80,7 +80,7 @@
     </div>
     <div style="display:flex;align-items:center;gap:10px;margin-top:14px">
       <h3 style="margin:0;font-size:14.5px">Adjusted efficiency by game</h3>
-      <button class="gt" id="metricsBtn" style="margin-left:auto">? What do these numbers mean?</button>
+      <button class="gt" id="metricsBtn" style="margin-left:auto;color:var(--muted)">What do these numbers mean?</button>
     </div>
     <div id="seasonChart"></div>
     <div class="legend" id="seasonLegend"></div>
@@ -142,11 +142,11 @@
     <p class="hint">Everything is per 100 possessions, so fast and slow teams compare fairly. League average this season is about <span id="lgAvg">108</span> points per 100.</p>
     <table>
       <tbody>
-        <tr><td style="text-align:left"><strong>AdjO</strong></td><td style="text-align:left;white-space:normal">Adjusted offensive efficiency: points a team would score per 100 possessions against an average defense, with home court taken out. Higher is better.</td></tr>
-        <tr><td style="text-align:left"><strong>AdjD</strong></td><td style="text-align:left;white-space:normal">Adjusted defensive efficiency: points allowed per 100 possessions against an average offense, venue removed. <em>Lower</em> is better.</td></tr>
-        <tr><td style="text-align:left"><strong>AdjEM</strong></td><td style="text-align:left;white-space:normal">Adjusted efficiency margin: AdjO minus AdjD. Read it as "how many points better than an average team, per 100 possessions." The headline rating; the table is ranked by it.</td></tr>
-        <tr><td style="text-align:left"><strong>Barthag</strong></td><td style="text-align:left;white-space:normal">The chance of beating an average Division I team on a neutral floor, turned into a number between 0 and 1 from AdjEM. .900 means a 90% favorite in that game.</td></tr>
-        <tr><td style="text-align:left"><strong>Pace</strong></td><td style="text-align:left;white-space:normal">Possessions per 40 minutes. Style, not quality: fast teams simply get more trips.</td></tr>
+        <tr id="def-AdjO"><td style="text-align:left"><strong>AdjO</strong></td><td style="text-align:left;white-space:normal">Adjusted offensive efficiency: points a team would score per 100 possessions against an average defense, with home court taken out. Higher is better.</td></tr>
+        <tr id="def-AdjD"><td style="text-align:left"><strong>AdjD</strong></td><td style="text-align:left;white-space:normal">Adjusted defensive efficiency: points allowed per 100 possessions against an average offense, venue removed. <em>Lower</em> is better.</td></tr>
+        <tr id="def-AdjEM"><td style="text-align:left"><strong>AdjEM</strong></td><td style="text-align:left;white-space:normal">Adjusted efficiency margin: AdjO minus AdjD. Read it as "how many points better than an average team, per 100 possessions." The headline rating; the table is ranked by it.</td></tr>
+        <tr id="def-Barthag"><td style="text-align:left"><strong>Barthag</strong></td><td style="text-align:left;white-space:normal">The chance of beating an average Division I team on a neutral floor, turned into a number between 0 and 1 from AdjEM. .900 means a 90% favorite in that game.</td></tr>
+        <tr id="def-Pace"><td style="text-align:left"><strong>Pace</strong></td><td style="text-align:left;white-space:normal">Possessions per 40 minutes. Style, not quality: fast teams simply get more trips.</td></tr>
         <tr><td style="text-align:left"><strong>Game AdjO / AdjD</strong></td><td style="text-align:left;white-space:normal">The same adjustment applied to one game: what the offense/defense did that night, corrected for who the opponent was and where it was played. That is what the chart and the game log show.</td></tr>
         <tr><td style="text-align:left"><strong>Prior</strong></td><td style="text-align:left;white-space:normal">Early in the season, last season's final rating is blended in and fades out by game 27, so November ratings are steadier than a handful of games deserve.</td></tr>
       </tbody>
@@ -219,10 +219,11 @@ function renderFocus(){
   fn.style.color = "var(--accent)";
   document.getElementById("focusMeta").textContent = `${t.conf} · ${t.W}-${t.L} · ratings through ${state.meta.last_game_date}`;
   const cards = [
-    ["AdjEM", sgn(t.AdjEM)], ["Adj Offense", fmt(t.AdjOE)], ["Adj Defense", fmt(t.AdjDE)],
-    ["Barthag", fmt(t.Barthag,3)], ["Pace", fmt(t.pace)], ["Games", t.gp]
+    ["AdjEM", sgn(t.AdjEM), "AdjEM"], ["Adj Offense", fmt(t.AdjOE), "AdjO"], ["Adj Defense", fmt(t.AdjDE), "AdjD"],
+    ["Barthag", fmt(t.Barthag,3), "Barthag"], ["Pace", fmt(t.pace), "Pace"], ["Games", t.gp, ""]
   ];
-  document.getElementById("focusCards").innerHTML = cards.map(c=>`<div class="card"><div class="v" style="color:var(--accent)">${c[1]}</div><div class="k">${c[0]}</div></div>`).join("");
+  document.getElementById("focusCards").innerHTML = cards.map(c=>`<div class="card" data-m="${c[2]}" ${c[2]?'title="What is this?" style="cursor:pointer"':""}><div class="v" style="color:var(--accent)">${c[1]}</div><div class="k">${c[0]}</div></div>`).join("");
+  wireCardClicks(document.getElementById("focusCards"));
   // compare
   const cmp = state.cmp ? teamRow(state.cmp) : null;
   document.getElementById("cmpBlock").style.display = cmp ? "block" : "none";
@@ -231,9 +232,10 @@ function renderFocus(){
     cn.textContent = `${cmp.team} — #${cmp.rank} nationally`;
     cn.style.color = "var(--accent2)"; // compare team matches its blue chart lines
     document.getElementById("cmpCards").innerHTML = [
-      ["AdjEM", sgn(cmp.AdjEM)], ["Adj Offense", fmt(cmp.AdjOE)], ["Adj Defense", fmt(cmp.AdjDE)],
-      ["Barthag", fmt(cmp.Barthag,3)], ["Pace", fmt(cmp.pace)], ["Games", cmp.gp]
-    ].map(c=>`<div class="card"><div class="v" style="color:var(--accent2)">${c[1]}</div><div class="k">${c[0]}</div></div>`).join("");
+      ["AdjEM", sgn(cmp.AdjEM), "AdjEM"], ["Adj Offense", fmt(cmp.AdjOE), "AdjO"], ["Adj Defense", fmt(cmp.AdjDE), "AdjD"],
+      ["Barthag", fmt(cmp.Barthag,3), "Barthag"], ["Pace", fmt(cmp.pace), "Pace"], ["Games", cmp.gp, ""]
+    ].map(c=>`<div class="card" data-m="${c[2]}" ${c[2]?'title="What is this?" style="cursor:pointer"':""}><div class="v" style="color:var(--accent2)">${c[1]}</div><div class="k">${c[0]}</div></div>`).join("");
+    wireCardClicks(document.getElementById("cmpCards"));
   }
   // season chart: per-game adj oe/de for focus (+ compare adj oe)
   // Chart encoding (Jeff, Nov 25): COLOR = team, LINE STYLE = metric.
@@ -329,6 +331,28 @@ async function loadGT(id, el){
   }catch(e){ el.innerHTML = "<p class='hint'>GameTracker data unavailable for this game.</p>"; }
 }
 
+// One explainer pop-up for the group; tapping a stat card opens the SAME
+// pop-up with that metric's definition highlighted (no per-card pop-ups).
+function openMetrics(key){
+  const modal = document.getElementById("metricsModal");
+  modal.style.display = "flex";
+  modal.querySelectorAll("tr[data-hl]").forEach(tr=>{ tr.removeAttribute("data-hl"); tr.style.background = ""; tr.style.outline = ""; });
+  if(key){
+    const row = document.getElementById("def-"+key);
+    if(row){
+      row.setAttribute("data-hl","1");
+      row.style.background = "var(--surface2)";
+      row.style.outline = "1px solid var(--accent)";
+      row.scrollIntoView({block:"center"});
+    }
+  }
+}
+function wireCardClicks(container){
+  container.querySelectorAll(".card[data-m]").forEach(card=>{
+    if(card.dataset.m) card.addEventListener("click", ()=> openMetrics(card.dataset.m));
+  });
+}
+
 function renderTop3(){
   const k = document.getElementById("top3Metric").value;
   const asc = (k === "AdjDE"); // defense: lower is better
@@ -390,7 +414,7 @@ async function init(){
     `Ratings through ${meta.last_game_date} · ${meta.teams} teams · ${meta.games_d1} games · updated ${meta.built_utc.slice(0,10)}`;
   document.getElementById("lgAvg").textContent = Math.round(meta.league_avg);
   const modal = document.getElementById("metricsModal");
-  document.getElementById("metricsBtn").addEventListener("click", ()=>{ modal.style.display = "flex"; });
+  document.getElementById("metricsBtn").addEventListener("click", ()=> openMetrics(""));
   document.getElementById("metricsClose").addEventListener("click", ()=>{ modal.style.display = "none"; });
   modal.addEventListener("click", e=>{ if(e.target === modal) modal.style.display = "none"; });
   document.addEventListener("keydown", e=>{ if(e.key === "Escape") modal.style.display = "none"; });
