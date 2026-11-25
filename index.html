@@ -5,14 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hoops Report — College Basketball Ratings</title>
 <style>
+  /* Dark theme only (Jeff, Nov 25). */
   :root{
-    --bg:#faf9f7; --surface:#ffffff; --surface2:#f1efe9; --text:#1c1a17; --muted:#6f6a61;
-    --border:#ddd8cf; --accent:#7d110c; --accent2:#2f5d8a; --good:#1e7a34; --bad:#b3261e;
-    --chart-grid:#e3ded4;
-  }
-  @media (prefers-color-scheme: dark){
-    :root{ --bg:#16140f; --surface:#211e18; --surface2:#2a2620; --text:#ece7dd; --muted:#a39a8b;
-      --border:#3d382e; --accent:#e0685f; --accent2:#7fb0dd; --chart-grid:#37332a; }
+    color-scheme: dark;
+    --bg:#16140f; --surface:#211e18; --surface2:#2a2620; --text:#ece7dd; --muted:#a39a8b;
+    --border:#3d382e; --accent:#e0685f; --accent2:#7fb0dd; --good:#4cc38a; --bad:#e0685f;
+    --chart-grid:#37332a; --gt:#e8c832;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
@@ -41,6 +39,7 @@
   .loss{color:var(--bad);font-weight:700}
   .gt-row td{background:var(--surface2);cursor:default;text-align:left;white-space:normal}
   button.gt{font-size:12px;padding:3px 9px;border:1px solid var(--border);border-radius:20px;background:var(--surface);color:var(--accent);cursor:pointer}
+  button.gtb{color:var(--gt);border-color:var(--gt)}
   .scroll{overflow-x:auto}
   .links{display:flex;flex-wrap:wrap;gap:8px}
   .links a{border:1px solid var(--border);border-radius:20px;padding:6px 13px;color:var(--accent);text-decoration:none;font-size:13.5px;background:var(--surface)}
@@ -238,7 +237,7 @@ function renderLog(fg){
     let gtBtn = "";
     if(state.focus==="Indiana"){
       const cand = Object.values(state.gtIndex).find(x=>x.date===g.date);
-      if(cand) gtBtn = `<button class="gt" data-gt="${cand.id}">GameTracker</button>`;
+      if(cand) gtBtn = `<button class="gt gtb" data-gt="${cand.id}">GameTracker</button>`;
     }
     return `<tr data-i="${i}"><td>${g.date.slice(5)}</td><td style="text-align:left">${g.opp}</td><td>${site}</td>` +
       `<td>${g.pts}-${g.allowed}</td><td class="${w?'win':'loss'}">${w?'W':'L'}</td>` +
@@ -273,8 +272,8 @@ async function loadGT(id, el){
     const caption = `${d.teams.away.name} at ${d.teams.home.name} — final ${d.teams.home.score}-${d.teams.away.score} (home first).`;
     function draw(mode){
       let html = `<p class="hint" style="margin-bottom:4px">${caption}</p>` +
-        `<div style="margin-bottom:6px"><button class="gt" data-m="margin">Margin</button> ` +
-        `<button class="gt" data-m="points">Points</button></div>`;
+        `<div style="margin-bottom:6px"><button class="gt gtb" data-m="margin">Margin</button> ` +
+        `<button class="gt gtb" data-m="points">Points</button></div>`;
       if(mode === "margin"){
         html += lineChart([{label:"IU margin", color:"var(--accent)", points: marginPts}], {h:200, zeroLine:true}) +
           `<div class="legend"><span><span class="sw" style="background:var(--accent)"></span>Indiana margin (points, by game minute)</span></div>`;
