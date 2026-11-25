@@ -260,17 +260,35 @@ async function loadGT(id, el){
   try{
     const d = await (await fetch(DATA+"gametracker/"+id+".json")).json();
     const iuHome = d.teams.home.name.includes("Indiana");
-    const maxT = d.periods<=2 ? 2400 : 2400 + (d.periods-2)*300;
-    const pts = d.scoring_plays.map(p=>{
-      // p.t is seconds elapsed within the period (feed: clock 19:40 -> t=20)
-      const elapsed = (p.period<=2 ? (p.period-1)*1200 + p.t : 2400 + (p.period-3)*300 + p.t);
-      const margin = iuHome ? (p.home - p.away) : (p.away - p.home);
-      return [elapsed, margin];
-    });
-    pts.unshift([0,0]);
-    const last = d.scoring_plays[d.scoring_plays.length-1];
-    el.innerHTML = `<p class="hint" style="margin-bottom:2px">${d.teams.away.name} at ${d.teams.home.name} — Indiana scoring margin by game time (minutes). Final: ${d.teams.home.score}-${d.teams.away.score}.</p>` +
-      lineChart([{label:"IU margin", color:"var(--accent)", points: pts.map(p=>[p[0]/60, p[1]])}], {h:200, zeroLine:true});
+    const iuName = iuHome ? d.teams.home.name : d.teams.away.name;
+    const oppName = iuHome ? d.teams.away.name : d.teams.home.name;
+    // p.t is seconds elapsed within the period (feed: clock 19:40 -> t=20)
+    const elapsedMin = p => ((p.period<=2 ? (p.period-1)*1200 + p.t : 2400 + (p.period-3)*300 + p.t) / 60);
+    const marginPts = [[0,0]].concat(d.scoring_plays.map(p=>
+      [elapsedMin(p), iuHome ? (p.home - p.away) : (p.away - p.home)]));
+    const iuPts = [[0,0]].concat(d.scoring_plays.map(p=>
+      [elapsedMin(p), iuHome ? p.home : p.away]));
+    const oppPts = [[0,0]].concat(d.scoring_plays.map(p=>
+      [elapsedMin(p), iuHome ? p.away : p.home]));
+    const caption = `${d.teams.away.name} at ${d.teams.home.name} — final ${d.teams.home.score}-${d.teams.away.score} (home first).`;
+    function draw(mode){
+      let html = `<p class="hint" style="margin-bottom:4px">${caption}</p>` +
+        `<div style="margin-bottom:6px"><button class="gt" data-m="margin">Margin</button> ` +
+        `<button class="gt" data-m="points">Points</button></div>`;
+      if(mode === "margin"){
+        html += lineChart([{label:"IU margin", color:"var(--accent)", points: marginPts}], {h:200, zeroLine:true}) +
+          `<div class="legend"><span><span class="sw" style="background:var(--accent)"></span>Indiana margin (points, by game minute)</span></div>`;
+      } else {
+        html += lineChart([
+          {label: iuName, color:"var(--accent)", points: iuPts},
+          {label: oppName, color:"var(--accent2)", points: oppPts}
+        ], {h:200}) +
+          `<div class="legend"><span><span class="sw" style="background:var(--accent)"></span>${iuName}</span><span><span class="sw" style="background:var(--accent2)"></span>${oppName}</span></div>`;
+      }
+      el.innerHTML = html;
+      el.querySelectorAll("button.gt").forEach(b=> b.addEventListener("click", ()=> draw(b.dataset.m)));
+    }
+    draw("margin");
   }catch(e){ el.innerHTML = "<p class='hint'>GameTracker data unavailable for this game.</p>"; }
 }
 
