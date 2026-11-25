@@ -1,0 +1,43 @@
+{
+  "season": 2027,
+  "built_utc": "2026-11-25T00:37:14+00:00",
+  "games_d1": 995,
+  "teams": 365,
+  "last_game_date": "2026-11-24",
+  "league_avg": 107.8282,
+  "iterations": 26,
+  "box_order_check": {
+    "rows": 1990,
+    "mismatches": 0,
+    "naive_reading_wrong": 995
+  },
+  "engine": {
+    "hca": 3.0,
+    "barthag_exp": 11.5,
+    "shrink": 0.889,
+    "prior": "flat, last season final (unshrunk)",
+    "prior_fade_games": 27,
+    "prior_season": 2026
+  },
+  "sources": {
+    "games": "https://barttorvik.com/getgamestats.php?year=2027&json=1",
+    "validation": "https://barttorvik.com/2027_team_results.csv"
+  },
+  "players": {
+    "rows": 4863,
+    "source": "https://barttorvik.com/getadvstats.php?year=2027&json=1",
+    "check_center_team": {
+      "team": "Indiana",
+      "players": 13,
+      "player_pts_from_makes": 527.0,
+      "player_pts_from_ppg": 527.0,
+      "game_file_pts_d1": 527.0,
+      "game_file_games_d1": 6,
+      "player_max_gp": 6
+    }
+  },
+  "gametracker": {
+    "games": 6,
+    "unverified": []
+  }
+}

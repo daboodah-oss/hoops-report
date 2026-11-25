@@ -1,0 +1,68 @@
+[
+ {
+  "id": "401916286",
+  "date": "2026-11-02",
+  "name": "Eastern Illinois Panthers at Indiana Hoosiers",
+  "final_score_matches": true,
+  "monotonic": true,
+  "score": {
+   "home": 91,
+   "away": 57
+  }
+ },
+ {
+  "id": "401916287",
+  "date": "2026-11-05",
+  "name": "Bellarmine Knights at Indiana Hoosiers",
+  "final_score_matches": true,
+  "monotonic": true,
+  "score": {
+   "home": 92,
+   "away": 69
+  }
+ },
+ {
+  "id": "401909718",
+  "date": "2026-11-09",
+  "name": "Syracuse Orange at Indiana Hoosiers",
+  "final_score_matches": true,
+  "monotonic": true,
+  "score": {
+   "home": 83,
+   "away": 80
+  }
+ },
+ {
+  "id": "401916288",
+  "date": "2026-11-12",
+  "name": "Tennessee Tech Golden Eagles at Indiana Hoosiers",
+  "final_score_matches": true,
+  "monotonic": true,
+  "score": {
+   "home": 90,
+   "away": 66
+  }
+ },
+ {
+  "id": "401916289",
+  "date": "2026-11-17",
+  "name": "Arkansas Razorbacks at Indiana Hoosiers",
+  "final_score_matches": true,
+  "monotonic": true,
+  "score": {
+   "home": 81,
+   "away": 76
+  }
+ },
+ {
+  "id": "401916290",
+  "date": "2026-11-20",
+  "name": "Kentucky Wildcats at Indiana Hoosiers",
+  "final_score_matches": true,
+  "monotonic": true,
+  "score": {
+   "home": 90,
+   "away": 76
+  }
+ }
+]

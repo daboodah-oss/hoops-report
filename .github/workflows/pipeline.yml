@@ -1,0 +1,32 @@
+name: daily-pipeline
+# Collect -> regression-test -> rate -> commit data/<season>/.
+# Manual trigger only for now.  Turn the schedule on at brief build step 5 (after the
+# page + QA pass exist), then soak for a week of daily runs before calling it live.
+on:
+  workflow_dispatch:
+  # schedule:
+  #   - cron: "17 11 * * *"   # 6:17 AM ET (standard time), after West Coast games finalize
+permissions:
+  contents: write
+concurrency:
+  group: pipeline
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python -m pytest -q
+      - name: Run pipeline (current season)
+        run: python scripts/run_pipeline.py
+      - name: Commit data
+        run: |
+          git config user.name "hoops-report-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/
+          git diff --cached --quiet || git commit -m "data: daily update $(date -u +%F)"
+          git push

@@ -1,0 +1,34 @@
+{
+  "teams_matched": 362,
+  "spearman_adjem": 0.9925623502689831,
+  "spearman_barthag": 0.992789259044193,
+  "pearson_adjem": 0.9939235473842868,
+  "mean_abs_rank_diff_all": 9.281767955801104,
+  "top30_mean_abs_rank_diff": 3.2333333333333334,
+  "top30_overlap": 27,
+  "adjem_sd_ours": 11.665557452342792,
+  "adjem_sd_torvik": 12.13339922988419,
+  "adjem_mae": 1.2455421852873967,
+  "indiana": {
+    "ours_rank": 100,
+    "torvik_rank": 83,
+    "ours": [
+      109.2,
+      102.6,
+      6.6
+    ],
+    "torvik": [
+      110.0,
+      100.2,
+      9.8
+    ]
+  },
+  "accept": {
+    "spearman>=0.98": true,
+    "top30<=3.0": false,
+    "indiana<=10": false
+  },
+  "passed": false,
+  "season": 2024,
+  "finished": true
+}
