@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hoops Report — College Basketball Ratings</title>
+<style>
+  :root{
+    --bg:#faf9f7; --surface:#ffffff; --surface2:#f1efe9; --text:#1c1a17; --muted:#6f6a61;
+    --border:#ddd8cf; --accent:#7d110c; --accent2:#2f5d8a; --good:#1e7a34; --bad:#b3261e;
+    --chart-grid:#e3ded4;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#16140f; --surface:#211e18; --surface2:#2a2620; --text:#ece7dd; --muted:#a39a8b;
+      --border:#3d382e; --accent:#e0685f; --accent2:#7fb0dd; --chart-grid:#37332a; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
+  header{position:sticky;top:0;z-index:10;background:var(--surface);border-bottom:3px solid var(--accent);padding:10px 16px;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline}
+  header h1{font-size:20px;margin:0;letter-spacing:.2px}
+  header h1 span{color:var(--accent)}
+  header .sub{color:var(--muted);font-size:13px}
+  main{max-width:1180px;margin:0 auto;padding:16px}
+  section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px}
+  section h2{margin:0 0 4px;font-size:17px;scroll-margin-top:80px}
+  section .hint{color:var(--muted);font-size:12.5px;margin:0 0 12px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:10px;margin:12px 0}
+  .card{background:var(--surface2);border-radius:8px;padding:10px;text-align:center}
+  .card .v{font-size:21px;font-weight:700}
+  .card .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-top:2px}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px}
+  select,input[type=search]{font-size:15px;padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text)}
+  table{border-collapse:collapse;width:100%;font-size:13.5px}
+  th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  th{cursor:pointer;user-select:none;color:var(--muted);font-weight:600}
+  tbody tr{cursor:pointer}
+  tbody tr:hover{background:var(--surface2)}
+  tr.focus{background:var(--surface2);font-weight:600}
+  .win{color:var(--good);font-weight:700}
+  .loss{color:var(--bad);font-weight:700}
+  .gt-row td{background:var(--surface2);cursor:default;text-align:left;white-space:normal}
+  button.gt{font-size:12px;padding:3px 9px;border:1px solid var(--border);border-radius:20px;background:var(--surface);color:var(--accent);cursor:pointer}
+  .scroll{overflow-x:auto}
+  .links{display:flex;flex-wrap:wrap;gap:8px}
+  .links a{border:1px solid var(--border);border-radius:20px;padding:6px 13px;color:var(--accent);text-decoration:none;font-size:13.5px;background:var(--surface)}
+  footer{color:var(--muted);font-size:12.5px;padding:4px 16px 28px;max-width:1180px;margin:0 auto}
+  svg text{font-size:10.5px;fill:var(--muted)}
+  .legend{font-size:12.5px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap;margin-top:4px}
+  .sw{display:inline-block;width:16px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Hoops <span>Report</span></h1>
+  <div class="sub" id="updated">Loading…</div>
+</header>
+<main>
+  <section id="focus">
+    <div class="controls">
+      <label>Team <select id="teamSel"></select></label>
+      <label>Compare <select id="cmpSel"><option value="">None</option></select></label>
+    </div>
+    <h2 id="focusName">—</h2>
+    <p class="hint" id="focusMeta">—</p>
+    <div class="cards" id="focusCards"></div>
+    <div id="cmpBlock" style="display:none">
+      <h2 id="cmpName">—</h2>
+      <div class="cards" id="cmpCards"></div>
+    </div>
+    <h3 style="margin:14px 0 4px;font-size:14.5px">Adjusted efficiency by game</h3>
+    <div id="seasonChart"></div>
+    <div class="legend" id="seasonLegend"></div>
+  </section>
+
+  <section id="gamelog">
+    <h2>Game log</h2>
+    <p class="hint">Adjusted offense / defense for the game (points per 100 possessions, opponent and venue adjusted). Indiana games carry a GameTracker scoring chart.</p>
+    <div class="scroll"><table id="logTable">
+      <thead><tr><th>Date</th><th>Opponent</th><th>Site</th><th>Score</th><th>Result</th><th>AdjO</th><th>AdjD</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </section>
+
+  <section id="players">
+    <h2 id="playersTitle">Players</h2>
+    <p class="hint">Season stats for the focus team, sorted by points per game.</p>
+    <div class="scroll"><table id="playerTable">
+      <thead><tr><th>Player</th><th>Class</th><th>MPG</th><th>PTS</th><th>REB</th><th>AST</th><th>eFG%</th><th>TS%</th><th>USG%</th><th>ORtg</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </section>
+
+  <section id="ratings">
+    <h2>All teams</h2>
+    <p class="hint">Our ratings for every Division I team, computed from game results the same way as the public systems: possessions from the box score, opponent and venue adjustment, flat prior from last season that fades by game 27. Click a column to sort; click a team to make it the focus.</p>
+    <div class="controls"><input type="search" id="teamSearch" placeholder="Search teams or conferences…"></div>
+    <div class="scroll"><table id="ratingsTable">
+      <thead><tr>
+        <th data-k="rank">Rk</th><th data-k="team">Team</th><th data-k="conf">Conf</th>
+        <th data-k="W">W</th><th data-k="L">L</th>
+        <th data-k="AdjOE">AdjO</th><th data-k="AdjDE">AdjD</th><th data-k="AdjEM">AdjEM</th>
+        <th data-k="Barthag">Barthag</th><th data-k="pace">Pace</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </section>
+
+  <section id="deeper">
+    <h2>Go deeper</h2>
+    <p class="hint">The established ratings and analysis sites. Ours is built to sit alongside them, not replace them.</p>
+    <div class="links">
+      <a href="https://kenpom.com" target="_blank" rel="noopener">KenPom</a>
+      <a href="https://barttorvik.com" target="_blank" rel="noopener">Bart Torvik</a>
+      <a href="https://evanmiya.com" target="_blank" rel="noopener">EvanMiya</a>
+      <a href="https://haslametrics.com" target="_blank" rel="noopener">Haslametrics</a>
+      <a href="https://hoop-explorer.com" target="_blank" rel="noopener">Hoop Explorer</a>
+      <a href="https://www.ncaa.com/stats/basketball-men/d1" target="_blank" rel="noopener">NCAA Stats</a>
+      <a href="https://www.sports-reference.com/cbb/" target="_blank" rel="noopener">Sports Reference CBB</a>
+    </div>
+  </section>
+</main>
+<footer id="foot"></footer>
+
+<script>
+"use strict";
+const DATA = "data/2027/";
+const state = { ratings: [], games: [], players: [], meta: null, gtIndex: {}, focus: "Indiana", cmp: "", sortK: "rank", sortDir: 1, query: "" };
+
+function parseCSV(text){
+  const lines = text.trim().split(/\r?\n/);
+  const head = lines[0].split(",");
+  return lines.slice(1).map(l => {
+    const cells = l.split(",");
+    const o = {};
+    head.forEach((h,i)=>{ const v = cells[i]; o[h] = (v !== "" && !isNaN(v)) ? parseFloat(v) : v; });
+    return o;
+  });
+}
+const fmt = (x,d=1)=> (typeof x === "number") ? x.toFixed(d) : x;
+const sgn = x => (x>0?"+":"") + fmt(x,1);
+
+function lineChart(series, opts){
+  // series: [{label,color,points:[[x,y],...]}]; returns svg string
+  const W = opts.w || 1060, H = opts.h || 240, P = {l:38,r:10,t:10,b:24};
+  let xs = [], ys = [];
+  series.forEach(s=>s.points.forEach(p=>{xs.push(p[0]); ys.push(p[1]);}));
+  if(!xs.length) return "<p class='hint'>No games yet.</p>";
+  let x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  if(opts.y0 !== undefined) y0 = opts.y0; if(opts.y1 !== undefined) y1 = opts.y1;
+  if(opts.zeroLine){ y0 = Math.min(y0,0); y1 = Math.max(y1,0); }
+  const pad = (y1-y0)*0.08 || 1; y0 -= pad; y1 += pad;
+  if(x1===x0) x1 = x0+1;
+  const X = v => P.l + (v-x0)/(x1-x0)*(W-P.l-P.r);
+  const Y = v => P.t + (y1-v)/(y1-y0)*(H-P.t-P.b);
+  let g = "";
+  for(let i=0;i<=4;i++){ const v = y0+(y1-y0)*i/4, y = Y(v);
+    g += `<line x1="${P.l}" y1="${y}" x2="${W-P.r}" y2="${y}" stroke="var(--chart-grid)"/><text x="${P.l-5}" y="${y+3}" text-anchor="end">${fmt(v,0)}</text>`; }
+  if(opts.zeroLine){ const y=Y(0); g += `<line x1="${P.l}" y1="${y}" x2="${W-P.r}" y2="${y}" stroke="var(--muted)" stroke-dasharray="4 3"/>`; }
+  let paths = "";
+  series.forEach(s=>{
+    const d = s.points.map((p,i)=> (i? "L":"M")+X(p[0]).toFixed(1)+" "+Y(p[1]).toFixed(1)).join(" ");
+    paths += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2"/>` +
+      s.points.map(p=>`<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="3" fill="${s.color}"><title>${s.label}: ${fmt(p[1],1)}</title></circle>`).join("");
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img">${g}${paths}</svg>`;
+}
+
+function teamRow(name){ return state.ratings.find(r=>r.team===name); }
+
+function renderFocus(){
+  const t = teamRow(state.focus); if(!t) return;
+  document.getElementById("focusName").textContent = `${t.team} — #${t.rank} nationally`;
+  document.getElementById("focusMeta").textContent = `${t.conf} · ${t.W}-${t.L} · ratings through ${state.meta.last_game_date}`;
+  const cards = [
+    ["AdjEM", sgn(t.AdjEM)], ["Adj Offense", fmt(t.AdjOE)], ["Adj Defense", fmt(t.AdjDE)],
+    ["Barthag", fmt(t.Barthag,3)], ["Pace", fmt(t.pace)], ["Games", t.gp]
+  ];
+  document.getElementById("focusCards").innerHTML = cards.map(c=>`<div class="card"><div class="v">${c[1]}</div><div class="k">${c[0]}</div></div>`).join("");
+  // compare
+  const cmp = state.cmp ? teamRow(state.cmp) : null;
+  document.getElementById("cmpBlock").style.display = cmp ? "block" : "none";
+  if(cmp){
+    document.getElementById("cmpName").textContent = `${cmp.team} — #${cmp.rank} nationally`;
+    document.getElementById("cmpCards").innerHTML = [
+      ["AdjEM", sgn(cmp.AdjEM)], ["Adj Offense", fmt(cmp.AdjOE)], ["Adj Defense", fmt(cmp.AdjDE)],
+      ["Barthag", fmt(cmp.Barthag,3)], ["Pace", fmt(cmp.pace)], ["Games", cmp.gp]
+    ].map(c=>`<div class="card"><div class="v">${c[1]}</div><div class="k">${c[0]}</div></div>`).join("");
+  }
+  // season chart: per-game adj oe/de for focus (+ compare adj oe)
+  const fg = state.games.filter(g=>g.team===state.focus).sort((a,b)=> a.date<b.date?-1:1);
+  const series = [
+    {label: state.focus+" AdjO", color:"var(--accent)", points: fg.map((g,i)=>[i+1, g.adj_oe])},
+    {label: state.focus+" AdjD", color:"var(--accent2)", points: fg.map((g,i)=>[i+1, g.adj_de])}
+  ];
+  let legend = `<span><span class="sw" style="background:var(--accent)"></span>AdjO</span><span><span class="sw" style="background:var(--accent2)"></span>AdjD (lower is better)</span>`;
+  if(cmp){
+    const cg = state.games.filter(g=>g.team===state.cmp).sort((a,b)=> a.date<b.date?-1:1);
+    series.push({label: cmp.team+" AdjO", color:"#b8860b", points: cg.map((g,i)=>[i+1, g.adj_oe])});
+    legend += `<span><span class="sw" style="background:#b8860b"></span>${cmp.team} AdjO</span>`;
+  }
+  document.getElementById("seasonChart").innerHTML = lineChart(series, {h:230});
+  document.getElementById("seasonLegend").innerHTML = legend;
+  renderLog(fg);
+  renderPlayers();
+}
+
+function renderLog(fg){
+  const tb = document.querySelector("#logTable tbody");
+  const gtByOppDate = {};
+  Object.values(state.gtIndex).forEach(g=>{ gtByOppDate[g.date] = g; });
+  tb.innerHTML = fg.map((g,i)=>{
+    const w = g.pts > g.allowed;
+    const site = g.venue==="H" ? "Home" : g.venue==="A" ? "Away" : "Neutral";
+    let gtBtn = "";
+    if(state.focus==="Indiana"){
+      const cand = Object.values(state.gtIndex).find(x=>x.date===g.date);
+      if(cand) gtBtn = `<button class="gt" data-gt="${cand.id}">GameTracker</button>`;
+    }
+    return `<tr data-i="${i}"><td>${g.date.slice(5)}</td><td style="text-align:left">${g.opp}</td><td>${site}</td>` +
+      `<td>${g.pts}-${g.allowed}</td><td class="${w?'win':'loss'}">${w?'W':'L'}</td>` +
+      `<td>${fmt(g.adj_oe)}</td><td>${fmt(g.adj_de)}</td><td>${gtBtn}</td></tr>` +
+      `<tr class="gt-row" id="gtrow-${i}" style="display:none"><td colspan="8"><div id="gtchart-${i}"></div></td></tr>`;
+  }).join("");
+  tb.querySelectorAll("button.gt").forEach(b=> b.addEventListener("click", ev=>{
+    ev.stopPropagation();
+    const tr = b.closest("tr"); const i = tr.dataset.i;
+    const row = document.getElementById("gtrow-"+i);
+    const open = row.style.display !== "none";
+    row.style.display = open ? "none" : "table-row";
+    if(!open) loadGT(b.dataset.gt, document.getElementById("gtchart-"+i));
+  }));
+}
+
+async function loadGT(id, el){
+  el.innerHTML = "<p class='hint'>Loading GameTracker…</p>";
+  try{
+    const d = await (await fetch(DATA+"gametracker/"+id+".json")).json();
+    const iuHome = d.teams.home.name.includes("Indiana");
+    const maxT = d.periods<=2 ? 2400 : 2400 + (d.periods-2)*300;
+    const pts = d.scoring_plays.map(p=>{
+      // p.t is seconds elapsed within the period (feed: clock 19:40 -> t=20)
+      const elapsed = (p.period<=2 ? (p.period-1)*1200 + p.t : 2400 + (p.period-3)*300 + p.t);
+      const margin = iuHome ? (p.home - p.away) : (p.away - p.home);
+      return [elapsed, margin];
+    });
+    pts.unshift([0,0]);
+    const last = d.scoring_plays[d.scoring_plays.length-1];
+    el.innerHTML = `<p class="hint" style="margin-bottom:2px">${d.teams.away.name} at ${d.teams.home.name} — Indiana scoring margin by game time (minutes). Final: ${d.teams.home.score}-${d.teams.away.score}.</p>` +
+      lineChart([{label:"IU margin", color:"var(--accent)", points: pts.map(p=>[p[0]/60, p[1]])}], {h:200, zeroLine:true});
+  }catch(e){ el.innerHTML = "<p class='hint'>GameTracker data unavailable for this game.</p>"; }
+}
+
+function renderPlayers(){
+  const ps = state.players.filter(p=>p.team===state.focus).sort((a,b)=> b.pts_pg - a.pts_pg);
+  document.getElementById("playersTitle").textContent = state.focus + " players";
+  document.querySelector("#playerTable tbody").innerHTML = ps.map(p=>
+    `<tr><td>${p.player}</td><td>${p.class||""}</td><td>${fmt(p.mpg)}</td><td>${fmt(p.pts_pg)}</td>` +
+    `<td>${fmt(p.reb_pg)}</td><td>${fmt(p.ast_pg)}</td><td>${fmt(p.efg,1)}</td><td>${fmt(p.ts,1)}</td>` +
+    `<td>${fmt(p.usg,1)}</td><td>${fmt(p.ortg,0)}</td></tr>`).join("") ||
+    "<tr><td colspan='10'>No player data for this team.</td></tr>";
+}
+
+function renderRatings(){
+  let rows = state.ratings.slice();
+  if(state.query){
+    const q = state.query.toLowerCase();
+    rows = rows.filter(r=> r.team.toLowerCase().includes(q) || String(r.conf).toLowerCase().includes(q));
+  }
+  rows.sort((a,b)=>{
+    const k = state.sortK; let va = a[k], vb = b[k];
+    if(typeof va === "string") return state.sortDir * va.localeCompare(vb);
+    return state.sortDir * (va - vb);
+  });
+  document.querySelector("#ratingsTable tbody").innerHTML = rows.map(r=>
+    `<tr data-team="${r.team}" class="${r.team===state.focus?'focus':''}"><td>${r.rank}</td><td>${r.team}</td><td>${r.conf}</td>` +
+    `<td>${r.W}</td><td>${r.L}</td><td>${fmt(r.AdjOE)}</td><td>${fmt(r.AdjDE)}</td><td>${sgn(r.AdjEM)}</td>` +
+    `<td>${fmt(r.Barthag,3)}</td><td>${fmt(r.pace)}</td></tr>`).join("");
+  document.querySelectorAll("#ratingsTable tbody tr").forEach(tr=>
+    tr.addEventListener("click", ()=>{ state.focus = tr.dataset.team; document.getElementById("teamSel").value = state.focus; renderFocus(); renderRatings(); window.scrollTo({top:0, behavior:"smooth"}); }));
+}
+
+async function init(){
+  const [ratingsTxt, gamesTxt, playersTxt, meta, gtIdx] = await Promise.all([
+    fetch(DATA+"ratings.csv").then(r=>r.text()),
+    fetch(DATA+"team_games.csv").then(r=>r.text()),
+    fetch(DATA+"players.csv").then(r=>r.text()),
+    fetch(DATA+"meta.json").then(r=>r.json()),
+    fetch(DATA+"gametracker/index.json").then(r=>r.json())
+  ]);
+  state.ratings = parseCSV(ratingsTxt);
+  state.games = parseCSV(gamesTxt);
+  state.players = parseCSV(playersTxt);
+  state.meta = meta;
+  gtIdx.forEach(g=> state.gtIndex[g.id]=g);
+  document.getElementById("updated").textContent =
+    `Ratings through ${meta.last_game_date} · ${meta.teams} teams · ${meta.games_d1} games · updated ${meta.built_utc.slice(0,10)}`;
+  document.getElementById("foot").textContent =
+    "Our own ratings, computed from public box scores. AdjO/AdjD are points per 100 possessions, adjusted for opponent and venue. Barthag is the chance of beating an average Division I team on a neutral floor.";
+  const names = state.ratings.map(r=>r.team).sort();
+  const sel = document.getElementById("teamSel"), cmp = document.getElementById("cmpSel");
+  names.forEach(n=>{ sel.add(new Option(n,n)); cmp.add(new Option(n,n)); });
+  sel.value = state.focus;
+  sel.addEventListener("change", ()=>{ state.focus = sel.value; renderFocus(); renderRatings(); });
+  cmp.addEventListener("change", ()=>{ state.cmp = cmp.value; renderFocus(); });
+  document.getElementById("teamSearch").addEventListener("input", e=>{ state.query = e.target.value; renderRatings(); });
+  document.querySelectorAll("#ratingsTable th").forEach(th=> th.addEventListener("click", ()=>{
+    const k = th.dataset.k;
+    if(state.sortK===k) state.sortDir *= -1; else { state.sortK = k; state.sortDir = 1; }
+    renderRatings();
+  }));
+  renderFocus(); renderRatings();
+}
+init().catch(e=>{ document.getElementById("updated").textContent = "Could not load data: " + e.message; });
+</script>
+</body>
+</html>
