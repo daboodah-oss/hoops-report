@@ -30,7 +30,12 @@
   .card .v{font-size:21px;font-weight:700}
   .card .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-top:2px}
   .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px}
-  select,input[type=search]{font-size:15px;padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text)}
+  select,input[type=search],input[type=text]{font-size:15px;padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text)}
+  .combo{position:relative;display:inline-block}
+  .combo-list{position:absolute;left:0;top:calc(100% + 4px);min-width:240px;max-height:270px;overflow-y:auto;background:var(--surface2);border:1px solid var(--border);border-radius:9px;z-index:40;box-shadow:0 10px 28px rgba(0,0,0,.45)}
+  .combo-item{display:flex;gap:8px;padding:9px 12px;cursor:pointer;font-size:14.5px;white-space:nowrap;color:var(--text)}
+  .combo-item .rk{color:var(--muted);min-width:36px}
+  .combo-item.sel,.combo-item:hover{background:#37321f}
   table{border-collapse:collapse;width:100%;font-size:13.5px}
   th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
   th:first-child,td:first-child{text-align:left}
@@ -69,8 +74,8 @@
       <span class="hint" id="pollNote">Polls loading…</span>
     </div>
     <div class="controls">
-      <label>Team <select id="teamSel"></select></label>
-      <label>Compare <select id="cmpSel"><option value="">None</option></select></label>
+      <label>Team <span class="combo"><input id="teamPick" type="text" autocomplete="off" placeholder="Search teams…"><span class="combo-list" id="teamList" hidden></span></span></label>
+      <label>Compare <span class="combo"><input id="cmpPick" type="text" autocomplete="off" placeholder="None"><span class="combo-list" id="cmpList" hidden></span></span></label>
     </div>
     <div class="controls" id="top3Bar">
       <span style="font-size:13.5px;color:var(--muted)">Quick compare, top 3 by</span>
@@ -303,7 +308,7 @@ function renderLog(fg){
     const g = fg[+tr.dataset.i];
     if(g && g.opp !== state.focus){
       state.cmp = g.opp;
-      document.getElementById("cmpSel").value = state.cmp;
+      syncPickers();
       renderFocus(); renderRatings();
       window.scrollTo({top:0, behavior:"smooth"});
     }
@@ -435,7 +440,7 @@ function applySwitchPrimary(){
   document.getElementById("confirmModal").style.display = "none";
   if(!pendingPrimary) return;
   state.focus = pendingPrimary; pendingPrimary = "";
-  document.getElementById("teamSel").value = state.focus;
+  syncPickers();
   renderFocus(); renderRatings();
   window.scrollTo({top:0, behavior:"smooth"});
 }
@@ -472,7 +477,7 @@ function renderTop3(){
     `<button class="gt cmpchip" data-team="${r.team}" style="margin-right:6px">#${i+1} ${r.team} · ${val(r)}</button>`).join("");
   document.querySelectorAll("#top3Chips button").forEach(b=> b.addEventListener("click", ()=>{
     state.cmp = b.dataset.team;
-    document.getElementById("cmpSel").value = state.cmp;
+    syncPickers();
     renderFocus();
   }));
 }
@@ -567,13 +572,42 @@ function pollPass(team){
 function populatePickers(){
   const conf = document.getElementById("confFilter").value;
   const keep = new Set([state.focus, state.cmp].filter(Boolean));
-  const names = state.ratings.slice().sort((a,b)=> a.rank - b.rank)
+  // Alphabetical: that's the order you hunt for a team in. Each row still
+  // carries the team's rank, so standing isn't lost.
+  state.pickerNames = state.ratings.slice().sort((a,b)=> a.team.localeCompare(b.team))
     .filter(r=> (!conf || r.conf === conf) && (pollPass(r.team) || keep.has(r.team)))
     .map(r=> r.team);
-  const sel = document.getElementById("teamSel"), cmp = document.getElementById("cmpSel");
-  sel.innerHTML = ""; cmp.innerHTML = "<option value=''>None</option>";
-  names.forEach(n=>{ sel.add(new Option(n,n)); cmp.add(new Option(n,n)); });
-  sel.value = state.focus; cmp.value = state.cmp || "";
+  syncPickers();
+}
+function syncPickers(){
+  const tp = document.getElementById("teamPick"), cp = document.getElementById("cmpPick");
+  if(tp) tp.value = state.focus || "";
+  if(cp) cp.value = state.cmp || "";
+}
+// Searchable team picker (the native Android dropdown is unusable at 365
+// teams): type to filter, tap to pick. Alphabetical order, rank shown on
+// each row.
+function makeCombo(input, list, onPick, allowNone){
+  const rankOf = n => { const r = teamRow(n); return r ? "#" + r.rank : ""; };
+  function render(){
+    const q = input.value.trim().toLowerCase();
+    const names = (state.pickerNames||[]).filter(n=> !q || n.toLowerCase().includes(q));
+    let html = "";
+    if(allowNone && (!q || "none".includes(q))) html += `<span class="combo-item" data-team=""><span class="rk"></span>None</span>`;
+    html += names.slice(0, 400).map(n=> `<span class="combo-item${n===input.dataset.current?" sel":""}" data-team="${n}"><span class="rk">${rankOf(n)}</span>${n}</span>`).join("");
+    list.innerHTML = html || `<span class="combo-item">No matches</span>`;
+    list.querySelectorAll(".combo-item[data-team]").forEach(it=> it.addEventListener("mousedown", ev=>{
+      ev.preventDefault();
+      const v = it.dataset.team;
+      list.hidden = true;
+      onPick(v || "");
+      syncPickers();
+      input.blur();
+    }));
+  }
+  input.addEventListener("focus", ()=>{ input.dataset.current = input.value; render(); list.hidden = false; input.select(); });
+  input.addEventListener("input", ()=>{ render(); list.hidden = false; });
+  input.addEventListener("blur", ()=>{ setTimeout(()=>{ list.hidden = true; syncPickers(); }, 120); });
 }
 
 async function init(){
@@ -607,9 +641,10 @@ async function init(){
   const confSel = document.getElementById("confFilter");
   [...new Set(state.ratings.map(r=>r.conf))].sort().forEach(c=> confSel.add(new Option(c, c)));
   populatePickers();
-  const sel = document.getElementById("teamSel"), cmp = document.getElementById("cmpSel");
-  sel.addEventListener("change", ()=>{ state.focus = sel.value; renderFocus(); renderRatings(); });
-  cmp.addEventListener("change", ()=>{ state.cmp = cmp.value; renderFocus(); });
+  makeCombo(document.getElementById("teamPick"), document.getElementById("teamList"),
+    n=>{ if(n){ state.focus = n; renderFocus(); renderRatings(); } }, false);
+  makeCombo(document.getElementById("cmpPick"), document.getElementById("cmpList"),
+    n=>{ state.cmp = n; renderFocus(); }, true);
   confSel.addEventListener("change", populatePickers);
   document.getElementById("pollFilter").addEventListener("change", populatePickers);
   loadPolls();
