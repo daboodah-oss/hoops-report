@@ -77,7 +77,10 @@
       <h2 id="cmpName">—</h2>
       <div class="cards" id="cmpCards"></div>
     </div>
-    <h3 style="margin:14px 0 4px;font-size:14.5px">Adjusted efficiency by game</h3>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:14px">
+      <h3 style="margin:0;font-size:14.5px">Adjusted efficiency by game</h3>
+      <button class="gt" id="metricsBtn" style="margin-left:auto">? What do these numbers mean?</button>
+    </div>
     <div id="seasonChart"></div>
     <div class="legend" id="seasonLegend"></div>
   </section>
@@ -129,6 +132,26 @@
     </div>
   </section>
 </main>
+<div id="metricsModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:50;align-items:flex-start;justify-content:center;padding:28px 14px">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;max-width:620px;width:100%;padding:20px 22px;max-height:86vh;overflow-y:auto">
+    <div style="display:flex;align-items:center">
+      <h2 style="margin:0;font-size:17px">The metrics, in plain terms</h2>
+      <button class="gt" id="metricsClose" style="margin-left:auto">Close</button>
+    </div>
+    <p class="hint">Everything is per 100 possessions, so fast and slow teams compare fairly. League average this season is about <span id="lgAvg">108</span> points per 100.</p>
+    <table>
+      <tbody>
+        <tr><td style="text-align:left"><strong>AdjO</strong></td><td style="text-align:left;white-space:normal">Adjusted offensive efficiency: points a team would score per 100 possessions against an average defense, with home court taken out. Higher is better.</td></tr>
+        <tr><td style="text-align:left"><strong>AdjD</strong></td><td style="text-align:left;white-space:normal">Adjusted defensive efficiency: points allowed per 100 possessions against an average offense, venue removed. <em>Lower</em> is better.</td></tr>
+        <tr><td style="text-align:left"><strong>AdjEM</strong></td><td style="text-align:left;white-space:normal">Adjusted efficiency margin: AdjO minus AdjD. Read it as "how many points better than an average team, per 100 possessions." The headline rating; the table is ranked by it.</td></tr>
+        <tr><td style="text-align:left"><strong>Barthag</strong></td><td style="text-align:left;white-space:normal">The chance of beating an average Division I team on a neutral floor, turned into a number between 0 and 1 from AdjEM. .900 means a 90% favorite in that game.</td></tr>
+        <tr><td style="text-align:left"><strong>Pace</strong></td><td style="text-align:left;white-space:normal">Possessions per 40 minutes. Style, not quality: fast teams simply get more trips.</td></tr>
+        <tr><td style="text-align:left"><strong>Game AdjO / AdjD</strong></td><td style="text-align:left;white-space:normal">The same adjustment applied to one game: what the offense/defense did that night, corrected for who the opponent was and where it was played. That is what the chart and the game log show.</td></tr>
+        <tr><td style="text-align:left"><strong>Prior</strong></td><td style="text-align:left;white-space:normal">Early in the season, last season's final rating is blended in and fades out by game 27, so November ratings are steadier than a handful of games deserve.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
 <footer id="foot"></footer>
 
 <script>
@@ -190,7 +213,9 @@ function confPill(conf){
 
 function renderFocus(){
   const t = teamRow(state.focus); if(!t) return;
-  document.getElementById("focusName").textContent = `${t.team} — #${t.rank} nationally`;
+  const fn = document.getElementById("focusName");
+  fn.textContent = `${t.team} — #${t.rank} nationally`;
+  fn.style.color = "var(--accent)";
   document.getElementById("focusMeta").textContent = `${t.conf} · ${t.W}-${t.L} · ratings through ${state.meta.last_game_date}`;
   const cards = [
     ["AdjEM", sgn(t.AdjEM)], ["Adj Offense", fmt(t.AdjOE)], ["Adj Defense", fmt(t.AdjDE)],
@@ -201,11 +226,13 @@ function renderFocus(){
   const cmp = state.cmp ? teamRow(state.cmp) : null;
   document.getElementById("cmpBlock").style.display = cmp ? "block" : "none";
   if(cmp){
-    document.getElementById("cmpName").textContent = `${cmp.team} — #${cmp.rank} nationally`;
+    const cn = document.getElementById("cmpName");
+    cn.textContent = `${cmp.team} — #${cmp.rank} nationally`;
+    cn.style.color = "var(--accent2)"; // compare team matches its blue chart lines
     document.getElementById("cmpCards").innerHTML = [
       ["AdjEM", sgn(cmp.AdjEM)], ["Adj Offense", fmt(cmp.AdjOE)], ["Adj Defense", fmt(cmp.AdjDE)],
       ["Barthag", fmt(cmp.Barthag,3)], ["Pace", fmt(cmp.pace)], ["Games", cmp.gp]
-    ].map(c=>`<div class="card"><div class="v">${c[1]}</div><div class="k">${c[0]}</div></div>`).join("");
+    ].map(c=>`<div class="card"><div class="v" style="color:var(--accent2)">${c[1]}</div><div class="k">${c[0]}</div></div>`).join("");
   }
   // season chart: per-game adj oe/de for focus (+ compare adj oe)
   // Chart encoding (Jeff, Nov 25): COLOR = team, LINE STYLE = metric.
@@ -360,6 +387,12 @@ async function init(){
   gtIdx.forEach(g=> state.gtIndex[g.id]=g);
   document.getElementById("updated").textContent =
     `Ratings through ${meta.last_game_date} · ${meta.teams} teams · ${meta.games_d1} games · updated ${meta.built_utc.slice(0,10)}`;
+  document.getElementById("lgAvg").textContent = Math.round(meta.league_avg);
+  const modal = document.getElementById("metricsModal");
+  document.getElementById("metricsBtn").addEventListener("click", ()=>{ modal.style.display = "flex"; });
+  document.getElementById("metricsClose").addEventListener("click", ()=>{ modal.style.display = "none"; });
+  modal.addEventListener("click", e=>{ if(e.target === modal) modal.style.display = "none"; });
+  document.addEventListener("keydown", e=>{ if(e.key === "Escape") modal.style.display = "none"; });
   document.getElementById("foot").textContent =
     "Our own ratings, computed from public box scores. AdjO/AdjD are points per 100 possessions, adjusted for opponent and venue. Barthag is the chance of beating an average Division I team on a neutral floor.";
   const names = state.ratings.map(r=>r.team).sort();
