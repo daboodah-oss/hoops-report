@@ -222,7 +222,7 @@ function renderFocus(){
     ["AdjEM", sgn(t.AdjEM)], ["Adj Offense", fmt(t.AdjOE)], ["Adj Defense", fmt(t.AdjDE)],
     ["Barthag", fmt(t.Barthag,3)], ["Pace", fmt(t.pace)], ["Games", t.gp]
   ];
-  document.getElementById("focusCards").innerHTML = cards.map(c=>`<div class="card"><div class="v">${c[1]}</div><div class="k">${c[0]}</div></div>`).join("");
+  document.getElementById("focusCards").innerHTML = cards.map(c=>`<div class="card"><div class="v" style="color:var(--accent)">${c[1]}</div><div class="k">${c[0]}</div></div>`).join("");
   // compare
   const cmp = state.cmp ? teamRow(state.cmp) : null;
   document.getElementById("cmpBlock").style.display = cmp ? "block" : "none";
