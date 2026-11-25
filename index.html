@@ -40,6 +40,7 @@
   .gt-row td{background:var(--surface2);cursor:default;text-align:left;white-space:normal}
   button.gt{font-size:12px;padding:3px 9px;border:1px solid var(--border);border-radius:20px;background:var(--surface);color:var(--accent);cursor:pointer}
   button.gtb{color:var(--gt);border-color:var(--gt)}
+  button.cmpchip{color:var(--accent2);border-color:var(--accent2)}
   .scroll{overflow-x:auto}
   .links{display:flex;flex-wrap:wrap;gap:8px}
   .links a{border:1px solid var(--border);border-radius:20px;padding:6px 13px;color:var(--accent);text-decoration:none;font-size:13.5px;background:var(--surface)}
@@ -335,7 +336,7 @@ function renderTop3(){
     .sort((a,b)=> asc ? a[k]-b[k] : b[k]-a[k]).slice(0,3);
   const val = r => k==="AdjEM" ? sgn(r[k]) : fmt(r[k], k==="pace"?1:1);
   document.getElementById("top3Chips").innerHTML = top.map((r,i)=>
-    `<button class="gt" data-team="${r.team}" style="margin-right:6px">#${i+1} ${r.team} · ${val(r)}</button>`).join("");
+    `<button class="gt cmpchip" data-team="${r.team}" style="margin-right:6px">#${i+1} ${r.team} · ${val(r)}</button>`).join("");
   document.querySelectorAll("#top3Chips button").forEach(b=> b.addEventListener("click", ()=>{
     state.cmp = b.dataset.team;
     document.getElementById("cmpSel").value = state.cmp;
