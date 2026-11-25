@@ -20,6 +20,9 @@
   header .sub{color:var(--muted);font-size:13px}
   main{max-width:1180px;margin:0 auto;padding:16px}
   section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px}
+  .sec-head{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:9px 13px;margin-bottom:13px}
+  .sec-head h2{margin:0;font-size:16px;letter-spacing:.05em;text-transform:uppercase}
+  .sec-head .hint{margin:3px 0 0}
   section h2{margin:0 0 4px;font-size:17px;scroll-margin-top:80px}
   section .hint{color:var(--muted);font-size:12.5px;margin:0 0 12px}
   .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:10px;margin:12px 0}
@@ -58,6 +61,7 @@
 </header>
 <main>
   <section id="focus">
+    <div class="sec-head"><h2>Team focus &amp; compare</h2><p class="hint">Pick a primary team, add a compare team, and read the season chart. Red is the primary team, blue is the compare team, everywhere on this page.</p></div>
     <div class="controls">
       <label>Team <select id="teamSel"></select></label>
       <label>Compare <select id="cmpSel"><option value="">None</option></select></label>
@@ -88,8 +92,8 @@
   </section>
 
   <section id="gamelog">
-    <h2>Game log</h2>
-    <p class="hint">Adjusted offense / defense for the game (points per 100 possessions, opponent and venue adjusted). Click a game to load that opponent as the compare team. Every game carries a GameTracker scoring chart (Indiana's are stored; other teams' load live from ESPN when opened).</p>
+    <div class="sec-head"><h2>Game log</h2>
+    <p class="hint">Adjusted offense / defense for the game (points per 100 possessions, opponent and venue adjusted). Click a game to load that opponent as the compare team. Every game carries a GameTracker scoring chart (Indiana's are stored; other teams' load live from ESPN when opened).</p></div>
     <div class="scroll"><table id="logTable">
       <thead><tr><th>Date</th><th>Opponent</th><th>Site</th><th>Score</th><th>Result</th><th>AdjO</th><th>AdjD</th><th></th></tr></thead>
       <tbody></tbody>
@@ -97,8 +101,8 @@
   </section>
 
   <section id="players">
-    <h2 id="playersTitle">Players</h2>
-    <p class="hint">Season stats for the focus team, sorted by points per game.</p>
+    <div class="sec-head"><h2 id="playersTitle">Players</h2>
+    <p class="hint">Season stats for the focus team, sorted by points per game.</p></div>
     <div class="scroll"><table id="playerTable">
       <thead><tr><th>Player</th><th>Class</th><th>MPG</th><th>PTS</th><th>REB</th><th>AST</th><th>eFG%</th><th>TS%</th><th>USG%</th><th>ORtg</th></tr></thead>
       <tbody></tbody>
@@ -106,8 +110,8 @@
   </section>
 
   <section id="ratings">
-    <h2>All teams</h2>
-    <p class="hint">Our ratings for every Division I team, computed from game results the same way as the public systems: possessions from the box score, opponent and venue adjustment, flat prior from last season that fades by game 27. Click a column to sort; click a team to make it the focus.</p>
+    <div class="sec-head"><h2>All teams</h2>
+    <p class="hint">Our ratings for every Division I team, computed from game results the same way as the public systems: possessions from the box score, opponent and venue adjustment, flat prior from last season that fades by game 27. Click a column to sort; click a team to make it the focus.</p></div>
     <div class="controls"><input type="search" id="teamSearch" placeholder="Search teams or conferences…"></div>
     <div class="scroll"><table id="ratingsTable">
       <thead><tr>
@@ -121,8 +125,8 @@
   </section>
 
   <section id="deeper">
-    <h2>Go deeper</h2>
-    <p class="hint">The established ratings and analysis sites. Ours is built to sit alongside them, not replace them.</p>
+    <div class="sec-head"><h2>Go deeper</h2>
+    <p class="hint">The established ratings and analysis sites. Ours is built to sit alongside them, not replace them.</p></div>
     <div class="links">
       <a href="https://kenpom.com" target="_blank" rel="noopener">KenPom</a>
       <a href="https://barttorvik.com" target="_blank" rel="noopener">Bart Torvik</a>
