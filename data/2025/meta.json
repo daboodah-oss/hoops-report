@@ -1,0 +1,26 @@
+{
+  "season": 2025,
+  "built_utc": "2026-11-25T00:38:00+00:00",
+  "games_d1": 5764,
+  "teams": 364,
+  "last_game_date": "2025-04-07",
+  "league_avg": 107.2811,
+  "iterations": 153,
+  "box_order_check": {
+    "rows": 11528,
+    "mismatches": 0,
+    "naive_reading_wrong": 5764
+  },
+  "engine": {
+    "hca": 3.0,
+    "barthag_exp": 11.5,
+    "shrink": 0.889,
+    "prior": "flat, last season final (unshrunk)",
+    "prior_fade_games": 27,
+    "prior_season": 2024
+  },
+  "sources": {
+    "games": "https://barttorvik.com/getgamestats.php?year=2025&json=1",
+    "validation": "https://barttorvik.com/2025_team_results.csv"
+  }
+}
