@@ -40,6 +40,7 @@
   .gt-row td{background:var(--surface2);cursor:default;text-align:left;white-space:normal}
   button.gt{font-size:12px;padding:3px 9px;border:1px solid var(--border);border-radius:20px;background:var(--surface);color:var(--accent);cursor:pointer}
   button.gtb{color:var(--gt);border-color:var(--gt)}
+  button.gtb.on{background:var(--gt);color:#16140f;font-weight:700}
   button.cmpchip{color:var(--accent2);border-color:var(--accent2)}
   .scroll{overflow-x:auto}
   .links{display:flex;flex-wrap:wrap;gap:8px}
@@ -312,8 +313,8 @@ async function loadGT(id, el){
     const caption = `${d.teams.away.name} at ${d.teams.home.name} — final ${d.teams.home.score}-${d.teams.away.score} (home first).`;
     function draw(mode){
       let html = `<p class="hint" style="margin-bottom:4px">${caption}</p>` +
-        `<div style="margin-bottom:6px"><button class="gt gtb" data-m="margin">Margin</button> ` +
-        `<button class="gt gtb" data-m="points">Points</button></div>`;
+        `<div style="margin-bottom:6px"><button class="gt gtb${mode==="margin"?" on":""}" data-m="margin">Margin</button> ` +
+        `<button class="gt gtb${mode==="points"?" on":""}" data-m="points">Points</button></div>`;
       if(mode === "margin"){
         html += lineChart([{label:"IU margin", color:"var(--accent)", points: marginPts}], {h:200, zeroLine:true, vlines, x1:xEnd}) +
           `<div class="legend"><span><span class="sw" style="background:var(--accent)"></span>Indiana margin (points, by game minute)</span><span>Dashed verticals: halftime · end of regulation${d.periods>2 ? " · overtime" : ""}</span></div>`;
