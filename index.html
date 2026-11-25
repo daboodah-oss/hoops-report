@@ -168,6 +168,14 @@ function lineChart(series, opts){
 
 function teamRow(name){ return state.ratings.find(r=>r.team===name); }
 
+// Only the Big Ten is color-coded (Jeff, Nov 25: a color per conference was
+// too many). B10 gets a filled crimson pill; every other conference is plain.
+function confPill(conf){
+  if(conf === "B10")
+    return `<span style="display:inline-block;background:var(--accent);color:#fff;border-radius:10px;padding:1px 8px;font-weight:600">B10</span>`;
+  return conf;
+}
+
 function renderFocus(){
   const t = teamRow(state.focus); if(!t) return;
   document.getElementById("focusName").textContent = `${t.team} — #${t.rank} nationally`;
@@ -273,7 +281,7 @@ function renderRatings(){
     return state.sortDir * (va - vb);
   });
   document.querySelector("#ratingsTable tbody").innerHTML = rows.map(r=>
-    `<tr data-team="${r.team}" class="${r.team===state.focus?'focus':''}"><td>${r.rank}</td><td>${r.team}</td><td>${r.conf}</td>` +
+    `<tr data-team="${r.team}" class="${r.team===state.focus?'focus':''}"><td>${r.rank}</td><td>${r.team}</td><td>${confPill(r.conf)}</td>` +
     `<td>${r.W}</td><td>${r.L}</td><td>${fmt(r.AdjOE)}</td><td>${fmt(r.AdjDE)}</td><td>${sgn(r.AdjEM)}</td>` +
     `<td>${fmt(r.Barthag,3)}</td><td>${fmt(r.pace)}</td></tr>`).join("");
   document.querySelectorAll("#ratingsTable tbody tr").forEach(tr=>
