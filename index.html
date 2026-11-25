@@ -34,6 +34,7 @@
   table{border-collapse:collapse;width:100%;font-size:13.5px}
   th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
   th:first-child,td:first-child{text-align:left}
+  th.l,td.l{text-align:left}
   th{cursor:pointer;user-select:none;color:var(--muted);font-weight:600}
   tbody tr{cursor:pointer}
   tbody tr:hover{background:var(--surface2)}
@@ -95,7 +96,7 @@
     <div class="sec-head"><h2>Game log</h2>
     <p class="hint">Adjusted offense / defense for the game (points per 100 possessions, opponent and venue adjusted). Click a game to load that opponent as the compare team. Every game carries a GameTracker scoring chart (Indiana's are stored; other teams' load live from ESPN when opened).</p></div>
     <div class="scroll"><table id="logTable">
-      <thead><tr><th>Date</th><th>Opponent</th><th>Site</th><th>Score</th><th>Result</th><th>AdjO</th><th>AdjD</th><th></th></tr></thead>
+      <thead><tr><th>Date</th><th class="l">Opponent</th><th>Site</th><th>Score</th><th>Result</th><th>AdjO</th><th>AdjD</th><th></th></tr></thead>
       <tbody></tbody>
     </table></div>
   </section>
@@ -115,7 +116,7 @@
     <div class="controls"><input type="search" id="teamSearch" placeholder="Search teams or conferences…"></div>
     <div class="scroll"><table id="ratingsTable">
       <thead><tr>
-        <th data-k="rank">Rk</th><th data-k="team">Team</th><th data-k="conf">Conf</th>
+        <th data-k="rank">Rk</th><th data-k="team" class="l">Team</th><th data-k="conf" class="l">Conf</th>
         <th data-k="W">W</th><th data-k="L">L</th>
         <th data-k="AdjOE">AdjO</th><th data-k="AdjDE">AdjD</th><th data-k="AdjEM">AdjEM</th>
         <th data-k="Barthag">Barthag</th><th data-k="pace">Pace</th>
@@ -286,7 +287,7 @@ function renderLog(fg){
     const cand = state.focus==="Indiana" ? Object.values(state.gtIndex).find(x=>x.date===g.date) : null;
     if(cand) gtBtn = `<button class="gt gtb" data-gt="${cand.id}">GameTracker</button>`;
     else gtBtn = `<button class="gt gtb" data-live="${i}">GameTracker</button>`;
-    return `<tr data-i="${i}"><td>${g.date.slice(5)}</td><td style="text-align:left">${g.opp}</td><td>${site}</td>` +
+    return `<tr data-i="${i}"><td>${g.date.slice(5)}</td><td class="l">${g.opp}</td><td>${site}</td>` +
       `<td>${g.pts}-${g.allowed}</td><td class="${w?'win':'loss'}">${w?'W':'L'}</td>` +
       `<td>${fmt(g.adj_oe)}</td><td>${fmt(g.adj_de)}</td><td>${gtBtn}</td></tr>` +
       `<tr class="gt-row" id="gtrow-${i}" style="display:none"><td colspan="8"><div id="gtchart-${i}"></div></td></tr>`;
@@ -491,7 +492,7 @@ function renderRatings(){
     return state.sortDir * (va - vb);
   });
   document.querySelector("#ratingsTable tbody").innerHTML = rows.map(r=>
-    `<tr data-team="${r.team}" class="${r.team===state.focus?'focus':''}"><td>${r.rank}</td><td>${r.team}</td><td>${confPill(r.conf)}</td>` +
+    `<tr data-team="${r.team}" class="${r.team===state.focus?'focus':''}"><td>${r.rank}</td><td class="l">${r.team}</td><td class="l">${confPill(r.conf)}</td>` +
     `<td>${r.W}</td><td>${r.L}</td><td>${fmt(r.AdjOE)}</td><td>${fmt(r.AdjDE)}</td><td>${sgn(r.AdjEM)}</td>` +
     `<td>${fmt(r.Barthag,3)}</td><td>${fmt(r.pace)}</td></tr>`).join("");
   document.querySelectorAll("#ratingsTable tbody tr").forEach(tr=>
