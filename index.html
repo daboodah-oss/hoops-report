@@ -156,6 +156,7 @@ function lineChart(series, opts){
   series.forEach(s=>s.points.forEach(p=>{xs.push(p[0]); ys.push(p[1]);}));
   if(!xs.length) return "<p class='hint'>No games yet.</p>";
   let x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  if(opts.x1 !== undefined) x1 = opts.x1;
   if(opts.y0 !== undefined) y0 = opts.y0; if(opts.y1 !== undefined) y1 = opts.y1;
   if(opts.zeroLine){ y0 = Math.min(y0,0); y1 = Math.max(y1,0); }
   const pad = (y1-y0)*0.08 || 1; y0 -= pad; y1 += pad;
@@ -166,6 +167,8 @@ function lineChart(series, opts){
   for(let i=0;i<=4;i++){ const v = y0+(y1-y0)*i/4, y = Y(v);
     g += `<line x1="${P.l}" y1="${y}" x2="${W-P.r}" y2="${y}" stroke="var(--chart-grid)"/><text x="${P.l-5}" y="${y+3}" text-anchor="end">${fmt(v,0)}</text>`; }
   if(opts.zeroLine){ const y=Y(0); g += `<line x1="${P.l}" y1="${y}" x2="${W-P.r}" y2="${y}" stroke="var(--muted)" stroke-dasharray="4 3"/>`; }
+  (opts.vlines||[]).forEach(v=>{ if(v>x0 && v<x1){ const x=X(v);
+    g += `<line x1="${x}" y1="${P.t}" x2="${x}" y2="${H-P.b}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 4" opacity="0.65"/>`; } });
   let paths = "";
   series.forEach(s=>{
     const d = s.points.map((p,i)=> (i? "L":"M")+X(p[0]).toFixed(1)+" "+Y(p[1]).toFixed(1)).join(" ");
@@ -261,8 +264,15 @@ async function loadGT(id, el){
     const iuHome = d.teams.home.name.includes("Indiana");
     const iuName = iuHome ? d.teams.home.name : d.teams.away.name;
     const oppName = iuHome ? d.teams.away.name : d.teams.home.name;
-    // p.t is seconds elapsed within the period (feed: clock 19:40 -> t=20)
-    const elapsedMin = p => ((p.period<=2 ? (p.period-1)*1200 + p.t : 2400 + (p.period-3)*300 + p.t) / 60);
+    // p.t is CUMULATIVE game seconds (feed check: H2 opens at t=1219, not 19).
+    // An earlier version added the period offset on top, doubling the second
+    // half and leaving a wide empty halftime band on the axis.
+    const elapsedMin = p => (p.t / 60);
+    // Period boundaries in game minutes: half at 20, regulation at 40, then
+    // each overtime adds 5. Drawn as subtle vertical dividers.
+    const vlines = [20, 40];
+    for(let ot=1; ot<=d.periods-2; ot++) vlines.push(40 + ot*5);
+    const xEnd = 40 + 5*Math.max(0, d.periods-2) + 0.6; // axis runs just past the final boundary so its divider draws
     const marginPts = [[0,0]].concat(d.scoring_plays.map(p=>
       [elapsedMin(p), iuHome ? (p.home - p.away) : (p.away - p.home)]));
     const iuPts = [[0,0]].concat(d.scoring_plays.map(p=>
@@ -275,14 +285,14 @@ async function loadGT(id, el){
         `<div style="margin-bottom:6px"><button class="gt gtb" data-m="margin">Margin</button> ` +
         `<button class="gt gtb" data-m="points">Points</button></div>`;
       if(mode === "margin"){
-        html += lineChart([{label:"IU margin", color:"var(--accent)", points: marginPts}], {h:200, zeroLine:true}) +
-          `<div class="legend"><span><span class="sw" style="background:var(--accent)"></span>Indiana margin (points, by game minute)</span></div>`;
+        html += lineChart([{label:"IU margin", color:"var(--accent)", points: marginPts}], {h:200, zeroLine:true, vlines, x1:xEnd}) +
+          `<div class="legend"><span><span class="sw" style="background:var(--accent)"></span>Indiana margin (points, by game minute)</span><span>Dashed verticals: halftime · end of regulation${d.periods>2 ? " · overtime" : ""}</span></div>`;
       } else {
         html += lineChart([
           {label: iuName, color:"var(--accent)", points: iuPts},
           {label: oppName, color:"var(--accent2)", points: oppPts}
-        ], {h:200}) +
-          `<div class="legend"><span><span class="sw" style="background:var(--accent)"></span>${iuName}</span><span><span class="sw" style="background:var(--accent2)"></span>${oppName}</span></div>`;
+        ], {h:200, vlines, x1:xEnd}) +
+          `<div class="legend"><span><span class="sw" style="background:var(--accent)"></span>${iuName}</span><span><span class="sw" style="background:var(--accent2)"></span>${oppName}</span><span>Dashed verticals: halftime · end of regulation${d.periods>2 ? " · overtime" : ""}</span></div>`;
       }
       el.innerHTML = html;
       el.querySelectorAll("button.gt").forEach(b=> b.addEventListener("click", ()=> draw(b.dataset.m)));
