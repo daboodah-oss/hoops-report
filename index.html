@@ -170,7 +170,7 @@ function lineChart(series, opts){
   let paths = "";
   series.forEach(s=>{
     const d = s.points.map((p,i)=> (i? "L":"M")+X(p[0]).toFixed(1)+" "+Y(p[1]).toFixed(1)).join(" ");
-    paths += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2"/>` +
+    paths += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2"${s.dash ? ' stroke-dasharray="6 4"' : ""}/>` +
       s.points.map(p=>`<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="3" fill="${s.color}"><title>${s.label}: ${fmt(p[1],1)}</title></circle>`).join("");
   });
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img">${g}${paths}</svg>`;
@@ -206,16 +206,20 @@ function renderFocus(){
     ].map(c=>`<div class="card"><div class="v">${c[1]}</div><div class="k">${c[0]}</div></div>`).join("");
   }
   // season chart: per-game adj oe/de for focus (+ compare adj oe)
+  // Chart encoding (Jeff, Nov 25): COLOR = team, LINE STYLE = metric.
+  // AdjO is always solid, AdjD always dashed, for every team.
   const fg = state.games.filter(g=>g.team===state.focus).sort((a,b)=> a.date<b.date?-1:1);
   const series = [
     {label: state.focus+" AdjO", color:"var(--accent)", points: fg.map((g,i)=>[i+1, g.adj_oe])},
-    {label: state.focus+" AdjD", color:"var(--accent2)", points: fg.map((g,i)=>[i+1, g.adj_de])}
+    {label: state.focus+" AdjD", color:"var(--accent)", dash:true, points: fg.map((g,i)=>[i+1, g.adj_de])}
   ];
-  let legend = `<span><span class="sw" style="background:var(--accent)"></span>AdjO</span><span><span class="sw" style="background:var(--accent2)"></span>AdjD (lower is better)</span>`;
+  let legend = `<span><span class="sw" style="background:var(--accent)"></span>${state.focus}</span>` +
+    `<span>Solid = AdjO · Dashed = AdjD (lower is better)</span>`;
   if(cmp){
     const cg = state.games.filter(g=>g.team===state.cmp).sort((a,b)=> a.date<b.date?-1:1);
-    series.push({label: cmp.team+" AdjO", color:"#b8860b", points: cg.map((g,i)=>[i+1, g.adj_oe])});
-    legend += `<span><span class="sw" style="background:#b8860b"></span>${cmp.team} AdjO</span>`;
+    series.push({label: cmp.team+" AdjO", color:"var(--accent2)", points: cg.map((g,i)=>[i+1, g.adj_oe])});
+    series.push({label: cmp.team+" AdjD", color:"var(--accent2)", dash:true, points: cg.map((g,i)=>[i+1, g.adj_de])});
+    legend += `<span><span class="sw" style="background:var(--accent2)"></span>${cmp.team}</span>`;
   }
   document.getElementById("seasonChart").innerHTML = lineChart(series, {h:230});
   document.getElementById("seasonLegend").innerHTML = legend;
