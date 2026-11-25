@@ -89,7 +89,7 @@
 
   <section id="gamelog">
     <h2>Game log</h2>
-    <p class="hint">Adjusted offense / defense for the game (points per 100 possessions, opponent and venue adjusted). Click a game to load that opponent as the compare team. Indiana games carry a GameTracker scoring chart.</p>
+    <p class="hint">Adjusted offense / defense for the game (points per 100 possessions, opponent and venue adjusted). Click a game to load that opponent as the compare team. Every game carries a GameTracker scoring chart (Indiana's are stored; other teams' load live from ESPN when opened).</p>
     <div class="scroll"><table id="logTable">
       <thead><tr><th>Date</th><th>Opponent</th><th>Site</th><th>Score</th><th>Result</th><th>AdjO</th><th>AdjD</th><th></th></tr></thead>
       <tbody></tbody>
@@ -279,10 +279,9 @@ function renderLog(fg){
     const w = g.pts > g.allowed;
     const site = g.venue==="H" ? "Home" : g.venue==="A" ? "Away" : "Neutral";
     let gtBtn = "";
-    if(state.focus==="Indiana"){
-      const cand = Object.values(state.gtIndex).find(x=>x.date===g.date);
-      if(cand) gtBtn = `<button class="gt gtb" data-gt="${cand.id}">GameTracker</button>`;
-    }
+    const cand = state.focus==="Indiana" ? Object.values(state.gtIndex).find(x=>x.date===g.date) : null;
+    if(cand) gtBtn = `<button class="gt gtb" data-gt="${cand.id}">GameTracker</button>`;
+    else gtBtn = `<button class="gt gtb" data-live="${i}">GameTracker</button>`;
     return `<tr data-i="${i}"><td>${g.date.slice(5)}</td><td style="text-align:left">${g.opp}</td><td>${site}</td>` +
       `<td>${g.pts}-${g.allowed}</td><td class="${w?'win':'loss'}">${w?'W':'L'}</td>` +
       `<td>${fmt(g.adj_oe)}</td><td>${fmt(g.adj_de)}</td><td>${gtBtn}</td></tr>` +
@@ -297,58 +296,116 @@ function renderLog(fg){
       window.scrollTo({top:0, behavior:"smooth"});
     }
   }));
-  tb.querySelectorAll("button.gt").forEach(b=> b.addEventListener("click", ev=>{
+  tb.querySelectorAll("button.gt").forEach(b=> b.addEventListener("click", async ev=>{
     ev.stopPropagation();
     const tr = b.closest("tr"); const i = tr.dataset.i;
     const row = document.getElementById("gtrow-"+i);
     const open = row.style.display !== "none";
     row.style.display = open ? "none" : "table-row";
-    if(!open) loadGT(b.dataset.gt, document.getElementById("gtchart-"+i));
+    if(open) return;
+    const el = document.getElementById("gtchart-"+i);
+    if(b.dataset.gt) loadGT(b.dataset.gt, el);
+    else if(!el.dataset.loaded){
+      el.innerHTML = "<p class='hint'>Loading play-by-play from ESPN…</p>";
+      const d = await fetchLiveTracker(fg[+i]);
+      if(d){ el.dataset.loaded = "1"; renderGT(d, el, state.focus, d.focusHome); }
+      else el.innerHTML = "<p class='hint'>GameTracker unavailable for this game (could not match it on ESPN).</p>";
+    }
   }));
 }
 
 async function loadGT(id, el){
   el.innerHTML = "<p class='hint'>Loading GameTracker…</p>";
   try{
-    const d = await (await fetch(DATA+"gametracker/"+id+".json")).json();
-    const iuHome = d.teams.home.name.includes("Indiana");
-    const iuName = iuHome ? d.teams.home.name : d.teams.away.name;
-    const oppName = iuHome ? d.teams.away.name : d.teams.home.name;
-    // p.t is CUMULATIVE game seconds (feed check: H2 opens at t=1219, not 19).
-    // An earlier version added the period offset on top, doubling the second
-    // half and leaving a wide empty halftime band on the axis.
-    const elapsedMin = p => (p.t / 60);
-    // Period boundaries in game minutes: half at 20, regulation at 40, then
-    // each overtime adds 5. Drawn as subtle vertical dividers.
-    const vlines = [20, 40];
-    for(let ot=1; ot<=d.periods-2; ot++) vlines.push(40 + ot*5);
-    const xEnd = 40 + 5*Math.max(0, d.periods-2) + 0.6; // axis runs just past the final boundary so its divider draws
-    const marginPts = [[0,0]].concat(d.scoring_plays.map(p=>
-      [elapsedMin(p), iuHome ? (p.home - p.away) : (p.away - p.home)]));
-    const iuPts = [[0,0]].concat(d.scoring_plays.map(p=>
-      [elapsedMin(p), iuHome ? p.home : p.away]));
-    const oppPts = [[0,0]].concat(d.scoring_plays.map(p=>
-      [elapsedMin(p), iuHome ? p.away : p.home]));
-    const caption = `${d.teams.away.name} at ${d.teams.home.name} — final ${d.teams.home.score}-${d.teams.away.score} (home first).`;
-    function draw(mode){
-      let html = `<p class="hint" style="margin-bottom:4px">${caption}</p>` +
-        `<div style="margin-bottom:6px"><button class="gt gtb${mode==="margin"?" on":""}" data-m="margin">Margin</button> ` +
-        `<button class="gt gtb${mode==="points"?" on":""}" data-m="points">Points</button></div>`;
-      if(mode === "margin"){
-        html += lineChart([{label:"IU margin", color:"var(--accent)", points: marginPts}], {h:200, zeroLine:true, vlines, x1:xEnd}) +
-          `<div class="legend"><span><span class="sw" style="background:var(--accent)"></span>Indiana margin (points, by game minute)</span><span>Dashed verticals: halftime · end of regulation${d.periods>2 ? " · overtime" : ""}</span></div>`;
-      } else {
-        html += lineChart([
-          {label: iuName, color:"var(--accent)", points: iuPts},
-          {label: oppName, color:"var(--accent2)", points: oppPts}
-        ], {h:200, vlines, x1:xEnd}) +
-          `<div class="legend"><span><span class="sw" style="background:var(--accent)"></span>${iuName}</span><span><span class="sw" style="background:var(--accent2)"></span>${oppName}</span><span>Dashed verticals: halftime · end of regulation${d.periods>2 ? " · overtime" : ""}</span></div>`;
-      }
-      el.innerHTML = html;
-      el.querySelectorAll("button.gt").forEach(b=> b.addEventListener("click", ()=> draw(b.dataset.m)));
-    }
-    draw("margin");
+    const raw = await (await fetch(DATA+"gametracker/"+id+".json")).json();
+    const focusHome = raw.teams.home.name.includes(state.focus);
+    const d = { periods: raw.periods, focusHome,
+      homeName: raw.teams.home.name, awayName: raw.teams.away.name,
+      homeScore: raw.teams.home.score, awayScore: raw.teams.away.score,
+      plays: raw.scoring_plays.map(p=>({ t: p.t, home: p.home, away: p.away })) };
+    renderGT(d, el, state.focus, focusHome);
   }catch(e){ el.innerHTML = "<p class='hint'>GameTracker data unavailable for this game.</p>"; }
+}
+
+// GameTracker for non-Indiana games, fetched live from ESPN on tap: resolve
+// the ESPN event from that date's scoreboard (final-score pair match, which
+// is effectively unique per day; team-name similarity breaks ties), then
+// pull the summary play-by-play. ESPN's API allows cross-origin reads.
+const ESPN_API = "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball";
+const normName = s => (s||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+async function fetchLiveTracker(g){
+  try{
+    const sb = await (await fetch(`${ESPN_API}/scoreboard?dates=${g.date.replace(/-/g,"")}&groups=50&limit=400`)).json();
+    const cands = [];
+    for(const e of (sb.events||[])){
+      const comps = (e.competitions||[])[0]?.competitors || [];
+      if(comps.length !== 2) continue;
+      const s = comps.map(c=> parseInt(c.score, 10));
+      if((s[0] === g.pts && s[1] === g.allowed) || (s[0] === g.allowed && s[1] === g.pts)) cands.push({e, comps});
+    }
+    if(!cands.length) return null;
+    const nameHit = c => c.comps.some(cp => normName(cp.team.displayName).includes(normName(state.focus)) || normName(cp.team.shortDisplayName) === normName(state.focus));
+    const pick = cands.find(nameHit) || cands[0];
+    const focusComp = pick.comps.find(cp => nameHit({comps:[cp]})) || pick.comps.find(cp => parseInt(cp.score,10) === g.pts);
+    const homeComp = pick.comps.find(cp => cp.homeAway === "home");
+    const awayComp = pick.comps.find(cp => cp.homeAway === "away");
+    const sum = await (await fetch(`${ESPN_API}/summary?event=${pick.e.id}`)).json();
+    const plays = [];
+    let periods = 2;
+    for(const p of (sum.plays||[])){
+      const per = p.period?.number || 1;
+      periods = Math.max(periods, per);
+      if(!p.scoringPlay) continue;
+      const lenS = per <= 2 ? 1200 : 300;
+      const base = per <= 2 ? (per-1)*1200 : 2400 + (per-3)*300;
+      const parts = (p.clock?.displayValue || "0:00").split(":").map(Number);
+      const remain = (parts[0]||0)*60 + (parts[1]||0);
+      plays.push({ t: base + (lenS - remain), home: p.homeScore || 0, away: p.awayScore || 0 });
+    }
+    if(!plays.length) return null;
+    return { periods, focusHome: focusComp.homeAway === "home",
+      homeName: homeComp.team.shortDisplayName, awayName: awayComp.team.shortDisplayName,
+      homeScore: parseInt(homeComp.score,10), awayScore: parseInt(awayComp.score,10), plays };
+  }catch(err){ return null; }
+}
+
+function renderGT(d, el, focusName, focusHome){
+  const focusPtsName = focusHome ? d.homeName : d.awayName;
+  const oppName = focusHome ? d.awayName : d.homeName;
+  // p.t is CUMULATIVE game seconds (feed check: H2 opens at t=1219, not 19).
+  // An earlier version added the period offset on top, doubling the second
+  // half and leaving a wide empty halftime band on the axis.
+  const elapsedMin = p => (p.t / 60);
+  // Period boundaries in game minutes: half at 20, regulation at 40, then
+  // each overtime adds 5. Drawn as subtle vertical dividers.
+  const vlines = [20, 40];
+  for(let ot=1; ot<=d.periods-2; ot++) vlines.push(40 + ot*5);
+  const xEnd = 40 + 5*Math.max(0, d.periods-2) + 0.6; // axis runs just past the final boundary so its divider draws
+  const marginPts = [[0,0]].concat(d.plays.map(p=>
+    [elapsedMin(p), focusHome ? (p.home - p.away) : (p.away - p.home)]));
+  const focusPts = [[0,0]].concat(d.plays.map(p=>
+    [elapsedMin(p), focusHome ? p.home : p.away]));
+  const oppPts = [[0,0]].concat(d.plays.map(p=>
+    [elapsedMin(p), focusHome ? p.away : p.home]));
+  const caption = `${d.awayName} at ${d.homeName} — final ${d.homeScore}-${d.awayScore} (home first).`;
+  function draw(mode){
+    let html = `<p class="hint" style="margin-bottom:4px">${caption}</p>` +
+      `<div style="margin-bottom:6px"><button class="gt gtb${mode==="margin"?" on":""}" data-m="margin">Margin</button> ` +
+      `<button class="gt gtb${mode==="points"?" on":""}" data-m="points">Points</button></div>`;
+    if(mode === "margin"){
+      html += lineChart([{label: focusName + " margin", color:"var(--accent)", points: marginPts}], {h:200, zeroLine:true, vlines, x1:xEnd}) +
+        `<div class="legend"><span><span class="sw" style="background:var(--accent)"></span>${focusName} margin (points, by game minute)</span><span>Dashed verticals: halftime · end of regulation${d.periods>2 ? " · overtime" : ""}</span></div>`;
+    } else {
+      html += lineChart([
+        {label: focusPtsName, color:"var(--accent)", points: focusPts},
+        {label: oppName, color:"var(--accent2)", points: oppPts}
+      ], {h:200, vlines, x1:xEnd}) +
+        `<div class="legend"><span><span class="sw" style="background:var(--accent)"></span>${focusPtsName}</span><span><span class="sw" style="background:var(--accent2)"></span>${oppName}</span><span>Dashed verticals: halftime · end of regulation${d.periods>2 ? " · overtime" : ""}</span></div>`;
+    }
+    el.innerHTML = html;
+    el.querySelectorAll("button.gt").forEach(b=> b.addEventListener("click", ()=> draw(b.dataset.m)));
+  }
+  draw("margin");
 }
 
 // Clicking a team in the All Teams table asks before switching the primary
