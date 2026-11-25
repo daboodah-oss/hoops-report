@@ -61,6 +61,16 @@
       <label>Team <select id="teamSel"></select></label>
       <label>Compare <select id="cmpSel"><option value="">None</option></select></label>
     </div>
+    <div class="controls" id="top3Bar">
+      <span style="font-size:13.5px;color:var(--muted)">Quick compare, top 3 by</span>
+      <select id="top3Metric">
+        <option value="AdjEM">Overall (AdjEM)</option>
+        <option value="AdjOE">Offense (AdjO)</option>
+        <option value="AdjDE">Defense (AdjD)</option>
+        <option value="pace">Pace</option>
+      </select>
+      <span id="top3Chips"></span>
+    </div>
     <h2 id="focusName">—</h2>
     <p class="hint" id="focusMeta">—</p>
     <div class="cards" id="focusCards"></div>
@@ -211,6 +221,7 @@ function renderFocus(){
   document.getElementById("seasonLegend").innerHTML = legend;
   renderLog(fg);
   renderPlayers();
+  renderTop3();
 }
 
 function renderLog(fg){
@@ -257,6 +268,21 @@ async function loadGT(id, el){
     el.innerHTML = `<p class="hint" style="margin-bottom:2px">${d.teams.away.name} at ${d.teams.home.name} — Indiana scoring margin by game time (minutes). Final: ${d.teams.home.score}-${d.teams.away.score}.</p>` +
       lineChart([{label:"IU margin", color:"var(--accent)", points: pts.map(p=>[p[0]/60, p[1]])}], {h:200, zeroLine:true});
   }catch(e){ el.innerHTML = "<p class='hint'>GameTracker data unavailable for this game.</p>"; }
+}
+
+function renderTop3(){
+  const k = document.getElementById("top3Metric").value;
+  const asc = (k === "AdjDE"); // defense: lower is better
+  const top = state.ratings.filter(r=>r.team!==state.focus)
+    .sort((a,b)=> asc ? a[k]-b[k] : b[k]-a[k]).slice(0,3);
+  const val = r => k==="AdjEM" ? sgn(r[k]) : fmt(r[k], k==="pace"?1:1);
+  document.getElementById("top3Chips").innerHTML = top.map((r,i)=>
+    `<button class="gt" data-team="${r.team}" style="margin-right:6px">#${i+1} ${r.team} · ${val(r)}</button>`).join("");
+  document.querySelectorAll("#top3Chips button").forEach(b=> b.addEventListener("click", ()=>{
+    state.cmp = b.dataset.team;
+    document.getElementById("cmpSel").value = state.cmp;
+    renderFocus();
+  }));
 }
 
 function renderPlayers(){
@@ -311,6 +337,7 @@ async function init(){
   sel.value = state.focus;
   sel.addEventListener("change", ()=>{ state.focus = sel.value; renderFocus(); renderRatings(); });
   cmp.addEventListener("change", ()=>{ state.cmp = cmp.value; renderFocus(); });
+  document.getElementById("top3Metric").addEventListener("change", renderTop3);
   document.getElementById("teamSearch").addEventListener("input", e=>{ state.query = e.target.value; renderRatings(); });
   document.querySelectorAll("#ratingsTable th").forEach(th=> th.addEventListener("click", ()=>{
     const k = th.dataset.k;
