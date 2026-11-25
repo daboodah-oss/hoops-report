@@ -89,7 +89,7 @@
 
   <section id="gamelog">
     <h2>Game log</h2>
-    <p class="hint">Adjusted offense / defense for the game (points per 100 possessions, opponent and venue adjusted). Indiana games carry a GameTracker scoring chart.</p>
+    <p class="hint">Adjusted offense / defense for the game (points per 100 possessions, opponent and venue adjusted). Click a game to load that opponent as the compare team. Indiana games carry a GameTracker scoring chart.</p>
     <div class="scroll"><table id="logTable">
       <thead><tr><th>Date</th><th>Opponent</th><th>Site</th><th>Score</th><th>Result</th><th>AdjO</th><th>AdjD</th><th></th></tr></thead>
       <tbody></tbody>
@@ -278,6 +278,15 @@ function renderLog(fg){
       `<td>${fmt(g.adj_oe)}</td><td>${fmt(g.adj_de)}</td><td>${gtBtn}</td></tr>` +
       `<tr class="gt-row" id="gtrow-${i}" style="display:none"><td colspan="8"><div id="gtchart-${i}"></div></td></tr>`;
   }).join("");
+  tb.querySelectorAll("tr[data-i]").forEach(tr=> tr.addEventListener("click", ()=>{
+    const g = fg[+tr.dataset.i];
+    if(g && g.opp !== state.focus){
+      state.cmp = g.opp;
+      document.getElementById("cmpSel").value = state.cmp;
+      renderFocus(); renderRatings();
+      window.scrollTo({top:0, behavior:"smooth"});
+    }
+  }));
   tb.querySelectorAll("button.gt").forEach(b=> b.addEventListener("click", ev=>{
     ev.stopPropagation();
     const tr = b.closest("tr"); const i = tr.dataset.i;
