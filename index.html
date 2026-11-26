@@ -77,6 +77,7 @@
     <div class="controls">
       <label>Team <span class="combo"><input id="teamPick" type="text" autocomplete="off" placeholder="Search teams…"><span class="combo-list" id="teamList" hidden></span></span></label>
       <label>Compare <span class="combo"><input id="cmpPick" type="text" autocomplete="off" placeholder="None"><span class="combo-list" id="cmpList" hidden></span></span></label>
+      <button class="gt" id="cmpClear" style="color:var(--muted);display:none">Clear compare</button>
     </div>
     <div class="controls" id="top3Bar">
       <span style="font-size:13.5px;color:var(--muted)">Quick compare, top 3 by</span>
@@ -477,6 +478,7 @@ function renderTop3(){
   document.getElementById("top3Chips").innerHTML = top.map((r,i)=>
     `<button class="gt cmpchip${r.team===state.cmp?" on":""}" data-team="${r.team}" style="margin-right:6px">#${i+1} ${r.team} · ${val(r)}</button>`).join("");
   document.querySelectorAll("#top3Chips button").forEach(b=> b.addEventListener("click", ()=>{
+    if(b.dataset.team === state.cmp){ clearCompare(); return; } // tap the selected chip again to clear
     state.cmp = b.dataset.team;
     syncPickers();
     renderFocus();
@@ -584,6 +586,13 @@ function syncPickers(){
   const tp = document.getElementById("teamPick"), cp = document.getElementById("cmpPick");
   if(tp) tp.value = state.focus || "";
   if(cp) cp.value = state.cmp || "";
+  const cc = document.getElementById("cmpClear");
+  if(cc) cc.style.display = state.cmp ? "" : "none";
+}
+function clearCompare(){
+  state.cmp = "";
+  syncPickers();
+  renderFocus();
 }
 // Searchable team picker (the native Android dropdown is unusable at 365
 // teams): type to filter, tap to pick. Alphabetical order, rank shown on
@@ -646,6 +655,7 @@ async function init(){
     n=>{ if(n){ state.focus = n; renderFocus(); renderRatings(); } }, false);
   makeCombo(document.getElementById("cmpPick"), document.getElementById("cmpList"),
     n=>{ state.cmp = n; renderFocus(); }, true);
+  document.getElementById("cmpClear").addEventListener("click", clearCompare);
   confSel.addEventListener("change", populatePickers);
   document.getElementById("pollFilter").addEventListener("change", populatePickers);
   loadPolls();
