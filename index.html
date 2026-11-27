@@ -47,8 +47,10 @@
   #logTable{font-size:12.5px}
   #logTable th,#logTable td{padding:5px 6px}
   button.scorebtn{font-size:12.5px;padding:3px 8px}
-  button.scorebtn.win{color:var(--good)}
-  button.scorebtn.loss{color:var(--bad)}
+  button.scorebtn.winb{border-color:var(--good)}
+  button.scorebtn.lossb{border-color:var(--bad)}
+  .sc-f{color:var(--accent)}
+  .sc-o{color:var(--accent2)}
   .win{color:var(--good);font-weight:700}
   .loss{color:var(--bad);font-weight:700}
   .gt-row td{background:var(--surface2);cursor:default;text-align:left;white-space:normal}
@@ -112,9 +114,9 @@
 
   <section id="gamelog">
     <div class="sec-head"><h2>Game log</h2>
-    <p class="hint">Adjusted offense / defense for the game (points per 100 possessions, opponent and venue adjusted). Tap a row to load that opponent as the compare team. Tap the score to open its GameTracker scoring chart (Indiana's are stored; other teams' load live from ESPN when opened). Score is green for a win, red for a loss.</p></div>
+    <p class="hint">Adjusted offense / defense for the game (points per 100 possessions, opponent and venue adjusted). Tap a row to load that opponent as the compare team. Tap the score to open its GameTracker scoring chart (Indiana's are stored; other teams' load live from ESPN when opened). In the score, the home team is listed first, your team's score is red and the opponent's blue, and the pill's border is green for a win, red for a loss. "@" means an away game and "(N)" a neutral site.</p></div>
     <div class="scroll"><table id="logTable">
-      <thead><tr><th>Date</th><th class="l">Opponent</th><th>Site</th><th>Score</th><th>AdjO</th><th>AdjD</th></tr></thead>
+      <thead><tr><th>Date</th><th class="l">Opponent</th><th>Score</th><th>AdjO</th><th>AdjD</th></tr></thead>
       <tbody></tbody>
     </table></div>
   </section>
@@ -301,18 +303,24 @@ function renderLog(fg){
   Object.values(state.gtIndex).forEach(g=>{ gtByOppDate[g.date] = g; });
   tb.innerHTML = fg.map((g,i)=>{
     const w = g.pts > g.allowed;
-    const site = g.venue==="H" ? "H" : g.venue==="A" ? "A" : "N";
-    const prefix = g.venue==="A" ? "at " : "vs ";
+    // Venue rides in the opponent wording (no Site column): "vs" home,
+    // "@" away, "vs ... (N)" neutral.
+    const prefix = g.venue==="A" ? "@ " : "vs ";
+    const suffix = g.venue==="N" ? ` <span style="color:var(--muted)">(N)</span>` : "";
     const cand = state.focus==="Indiana" ? Object.values(state.gtIndex).find(x=>x.date===g.date) : null;
     const gtAttr = cand ? `data-gt="${cand.id}"` : `data-live="${i}"`;
     // The score itself is the GameTracker button: dropping the separate
-    // button column (and the Result column, which the score's color now
-    // carries) lets the whole log fit a phone screen without sideways scroll.
-    const scoreBtn = `<button class="gt gtb scorebtn ${w?'win':'loss'}" ${gtAttr} title="Open GameTracker">${g.pts}-${g.allowed}</button>`;
-    return `<tr data-i="${i}"><td>${g.date.slice(5)}</td><td class="l">${prefix}${g.opp}</td><td>${site}</td>` +
+    // button column (and the Result column) lets the whole log fit a phone
+    // screen without sideways scroll. Home team's score is listed first;
+    // the focus team's number is red, the opponent's blue; the pill border
+    // is green for a win, red for a loss.
+    const fSpan = `<span class="sc-f">${g.pts}</span>`, oSpan = `<span class="sc-o">${g.allowed}</span>`;
+    const scoreHtml = g.venue==="A" ? `${oSpan}-${fSpan}` : `${fSpan}-${oSpan}`;
+    const scoreBtn = `<button class="gt gtb scorebtn ${w?'winb':'lossb'}" ${gtAttr} title="Open GameTracker">${scoreHtml}</button>`;
+    return `<tr data-i="${i}"><td>${g.date.slice(5)}</td><td class="l">${prefix}${g.opp}${suffix}</td>` +
       `<td>${scoreBtn}</td>` +
       `<td>${fmt(g.adj_oe)}</td><td>${fmt(g.adj_de)}</td></tr>` +
-      `<tr class="gt-row" id="gtrow-${i}" style="display:none"><td colspan="6"><div id="gtchart-${i}"></div></td></tr>`;
+      `<tr class="gt-row" id="gtrow-${i}" style="display:none"><td colspan="5"><div id="gtchart-${i}"></div></td></tr>`;
   }).join("");
   tb.querySelectorAll("tr[data-i]").forEach(tr=> tr.addEventListener("click", ()=>{
     const g = fg[+tr.dataset.i];
