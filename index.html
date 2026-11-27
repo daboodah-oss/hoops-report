@@ -43,7 +43,7 @@
   th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
   th:first-child,td:first-child{text-align:left}
   th.l,td.l{text-align:left}
-  th{cursor:pointer;user-select:none;color:var(--text);font-weight:600;background:#37321f}
+  th{cursor:pointer;user-select:none;color:var(--text);font-weight:600;background:#2a2620;border-bottom:2px solid #ece7dd}
   tbody tr{cursor:pointer}
   tbody tr:hover{background:var(--surface2)}
   tr.focus{background:var(--surface2);font-weight:600}
@@ -66,7 +66,8 @@
   .links{display:flex;flex-wrap:wrap;gap:8px}
   .links a{border:1px solid var(--border);border-radius:20px;padding:6px 13px;color:var(--muted);text-decoration:none;font-size:13.5px;background:var(--surface)}
   footer{color:var(--muted);font-size:12.5px;padding:4px 16px 28px;max-width:1180px;margin:0 auto}
-  svg text{font-size:14px;fill:var(--muted)}
+  svg text{font-size:20px;fill:var(--muted)}
+  .mpara{margin:0 0 8px;line-height:1.5}
   .legend{font-size:12.5px;color:var(--muted);display:flex;gap:4px 16px;flex-wrap:wrap;margin-top:4px}
   #top3Chips{display:flex;flex-wrap:wrap;gap:7px}
   .sw{display:inline-block;width:16px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
@@ -176,7 +177,7 @@
 <div id="metricsModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:50;align-items:flex-start;justify-content:center;padding:28px 14px">
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;max-width:620px;width:100%;padding:20px 22px;max-height:86vh;overflow-y:auto">
     <div style="display:flex;align-items:center">
-      <h2 style="margin:0;font-size:17px">The metrics, in plain terms</h2>
+      <h2 style="margin:0;font-size:17px" id="metricsTitle">The metrics, in plain terms</h2>
       <button class="gt" id="metricsClose" style="margin-left:auto">Close</button>
     </div>
     <div id="metricsOne" style="display:none"></div>
@@ -218,7 +219,7 @@ const sgn = x => (x>0?"+":"") + fmt(x,1);
 
 function lineChart(series, opts){
   // series: [{label,color,points:[[x,y],...]}]; returns svg string
-  const W = opts.w || 1060, H = opts.h || 240, P = {l:38,r:10,t:10,b:24};
+  const W = opts.w || 1060, H = opts.h || 240, P = {l:48,r:10,t:10,b:24};
   let xs = [], ys = [];
   series.forEach(s=>s.points.forEach(p=>{xs.push(p[0]); ys.push(p[1]);}));
   if(!xs.length) return "<p class='hint'>No games yet.</p>";
@@ -266,7 +267,7 @@ function renderFocus(){
     ["Barthag", fmt(t.Barthag,3), "Barthag"], ["Pace", fmt(t.pace), "Pace"], ["Games", t.gp, ""]
   ];
   document.getElementById("focusCards").innerHTML = cards.map(c=>`<div class="card" data-m="${c[2]}" ${c[2]?'title="What is this?" style="cursor:pointer"':""}><div class="v" style="color:var(--accent)">${c[1]}</div><div class="k">${c[0]}</div></div>`).join("");
-  wireCardClicks(document.getElementById("focusCards"));
+  wireCardClicks(document.getElementById("focusCards"), state.focus);
   // compare
   const cmp = state.cmp ? teamRow(state.cmp) : null;
   document.getElementById("cmpBlock").style.display = cmp ? "block" : "none";
@@ -279,7 +280,7 @@ function renderFocus(){
       ["AdjEM", sgn(cmp.AdjEM), "AdjEM"], ["Adj Offense", fmt(cmp.AdjOE), "AdjO"], ["Adj Defense", fmt(cmp.AdjDE), "AdjD"],
       ["Barthag", fmt(cmp.Barthag,3), "Barthag"], ["Pace", fmt(cmp.pace), "Pace"], ["Games", cmp.gp, ""]
     ].map(c=>`<div class="card" data-m="${c[2]}" ${c[2]?'title="What is this?" style="cursor:pointer"':""}><div class="v" style="color:var(--accent2)">${c[1]}</div><div class="k">${c[0]}</div></div>`).join("");
-    wireCardClicks(document.getElementById("cmpCards"));
+    wireCardClicks(document.getElementById("cmpCards"), state.cmp);
   }
   // season chart: per-game adj oe/de for focus (+ compare adj oe)
   // Chart encoding (Jeff, Nov 25): COLOR = team, LINE STYLE = metric.
@@ -460,7 +461,7 @@ function renderGT(d, el, focusName, focusHome){
       svg.addEventListener("pointerdown", ev=>{
         const rect = svg.getBoundingClientRect();
         const vx = (ev.clientX - rect.left) * (1060 / rect.width); // viewBox units
-        const min = Math.max(0, Math.min(xEnd, (vx - 38) / (1060 - 38 - 10) * xEnd));
+        const min = Math.max(0, Math.min(xEnd, (vx - 48) / (1060 - 48 - 10) * xEnd));
         let hs = 0, as = 0;
         for(const p of d.plays){ if(p.t / 60 <= min){ hs = p.home; as = p.away; } else break; }
         const fs = focusHome ? hs : as, os = focusHome ? as : hs;
@@ -470,7 +471,7 @@ function renderGT(d, el, focusName, focusHome){
           : `${clockText(min)} — ${focusName} ${fs}, ${oppName} ${os}`;
         svg.querySelectorAll(".gt-mark").forEach(m=> m.remove());
         const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        const x = 38 + (min / xEnd) * (1060 - 38 - 10);
+        const x = 48 + (min / xEnd) * (1060 - 48 - 10);
         line.setAttribute("x1", x); line.setAttribute("x2", x);
         line.setAttribute("y1", 10); line.setAttribute("y2", 300 - 24);
         line.setAttribute("stroke", "var(--gt)"); line.setAttribute("stroke-width", "1.5");
@@ -516,28 +517,60 @@ function askSwitchCompare(team){
 }
 
 // One explainer pop-up: the "What do these numbers mean?" button shows the
-// whole list; tapping a stat card shows ONLY that metric's definition.
-function openMetrics(key){
+// whole list; tapping a stat card shows ONLY that metric, with a sentence
+// translating the team's actual value into plain terms.
+function metricValueText(key, team){
+  const t = teamRow(team); if(!t) return "";
+  const lg = state.meta ? state.meta.league_avg : 108;
+  const lgPace = state.ratings.length ? state.ratings.reduce((s,r)=> s + r.pace, 0) / state.ratings.length : 68;
+  const r1 = x => Math.round(x * 10) / 10;
+  if(key === "AdjEM"){
+    const per = Math.abs(t.AdjEM) * t.pace / 100;
+    return t.AdjEM >= 0
+      ? `${team}'s AdjEM is ${sgn(t.AdjEM)}: against an average Division I team, ${team} would be expected to win by about ${r1(Math.abs(t.AdjEM))} points per 100 possessions, roughly ${Math.round(per)} points in a game played at ${team}'s pace.`
+      : `${team}'s AdjEM is ${sgn(t.AdjEM)}: against an average Division I team, ${team} would be expected to lose by about ${r1(Math.abs(t.AdjEM))} points per 100 possessions, roughly ${Math.round(per)} points in a game played at ${team}'s pace.`;
+  }
+  if(key === "AdjO"){
+    const d = t.AdjOE - lg;
+    return `${team}'s AdjO is ${fmt(t.AdjOE)}: about ${r1(Math.abs(d))} points per 100 possessions ${d >= 0 ? "above" : "below"} the league average of ${r1(lg)} against an average defense.`;
+  }
+  if(key === "AdjD"){
+    const d = lg - t.AdjDE;
+    return `${team}'s AdjD is ${fmt(t.AdjDE)}: opponents score about ${r1(Math.abs(d))} points per 100 possessions ${d >= 0 ? "fewer" : "more"} than the league average of ${r1(lg)} against an average offense. Lower is better.`;
+  }
+  if(key === "Barthag")
+    return `${team}'s Barthag is ${fmt(t.Barthag,3)}: about a ${Math.round(t.Barthag * 100)}% chance of beating an average Division I team on a neutral court.`;
+  if(key === "Pace"){
+    const d = t.pace - lgPace;
+    return `${team}'s pace is ${fmt(t.pace)} possessions per 40 minutes, about ${r1(Math.abs(d))} ${d >= 0 ? "faster" : "slower"} than the league average of ${r1(lgPace)}.`;
+  }
+  return "";
+}
+function openMetrics(key, team){
   const modal = document.getElementById("metricsModal");
   modal.style.display = "flex";
   const one = document.getElementById("metricsOne");
   const all = document.getElementById("metricsAll");
+  const title = document.getElementById("metricsTitle");
   const row = key ? document.getElementById("def-"+key) : null;
   if(row){
-    const name = row.children[0].innerHTML, desc = row.children[1].innerHTML;
-    one.innerHTML = `<p style="margin:2px 0 6px"><strong style="font-size:16px">${name}</strong></p>` +
-      `<p style="margin:0;line-height:1.55">${desc}</p>` +
-      `<p class="hint" style="margin-top:12px">Everything is per 100 possessions, so fast and slow teams compare fairly. League average this season is about ${document.getElementById("lgAvg").textContent} points per 100.</p>`;
+    title.textContent = row.children[0].textContent;
+    const desc = row.children[1].innerHTML;
+    const val = team ? metricValueText(key, team) : "";
+    one.innerHTML = `<p class="mpara">${desc}</p>` +
+      (val ? `<p class="mpara">${val}</p>` : "") +
+      `<p class="mpara" style="color:var(--muted)">Everything is per 100 possessions, so fast and slow teams compare fairly. League average this season is about ${document.getElementById("lgAvg").textContent} points per 100.</p>`;
     one.style.display = "block";
     all.style.display = "none";
   } else {
+    title.textContent = "The metrics, in plain terms";
     one.style.display = "none";
     all.style.display = "block";
   }
 }
-function wireCardClicks(container){
+function wireCardClicks(container, team){
   container.querySelectorAll(".card[data-m]").forEach(card=>{
-    if(card.dataset.m) card.addEventListener("click", ()=> openMetrics(card.dataset.m));
+    if(card.dataset.m) card.addEventListener("click", ()=> openMetrics(card.dataset.m, team));
   });
 }
 
