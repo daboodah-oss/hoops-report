@@ -43,7 +43,7 @@
   th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
   th:first-child,td:first-child{text-align:left}
   th.l,td.l{text-align:left}
-  th{cursor:pointer;user-select:none;color:var(--muted);font-weight:600}
+  th{cursor:pointer;user-select:none;color:var(--text);font-weight:600;background:#37321f}
   tbody tr{cursor:pointer}
   tbody tr:hover{background:var(--surface2)}
   tr.focus{background:var(--surface2);font-weight:600}
@@ -127,9 +127,9 @@
 
   <section id="players">
     <div class="sec-head"><h2 id="playersTitle">Players</h2>
-    <p class="hint">Season stats for the focus team, sorted by points per game.</p></div>
+    <p class="hint">Season stats for the focus team. Tap a column heading to sort by it; tap again to flip the order.</p></div>
     <div class="scroll"><table id="playerTable">
-      <thead><tr><th>Player</th><th>Class</th><th>MPG</th><th>PTS</th><th>REB</th><th>AST</th><th>eFG%</th><th>TS%</th><th>USG%</th><th>ORtg</th></tr></thead>
+      <thead><tr><th data-k="player">Player</th><th data-k="class">Class</th><th data-k="mpg">MPG</th><th data-k="pts_pg">PTS</th><th data-k="reb_pg">REB</th><th data-k="ast_pg">AST</th><th data-k="efg">eFG%</th><th data-k="ts">TS%</th><th data-k="usg">USG%</th><th data-k="ortg">ORtg</th></tr></thead>
       <tbody></tbody>
     </table></div>
   </section>
@@ -201,7 +201,7 @@
 <script>
 "use strict";
 const DATA = "data/2027/";
-const state = { ratings: [], games: [], players: [], meta: null, gtIndex: {}, focus: "Indiana", cmp: "", sortK: "rank", sortDir: 1, query: "" };
+const state = { ratings: [], games: [], players: [], meta: null, gtIndex: {}, focus: "Indiana", cmp: "", sortK: "rank", sortDir: 1, pSortK: "pts_pg", pSortDir: -1, query: "" };
 
 function parseCSV(text){
   const lines = text.trim().split(/\r?\n/);
@@ -558,7 +558,12 @@ function renderTop3(){
 }
 
 function renderPlayers(){
-  const ps = state.players.filter(p=>p.team===state.focus).sort((a,b)=> b.pts_pg - a.pts_pg);
+  const k = state.pSortK, dir = state.pSortDir;
+  const ps = state.players.filter(p=>p.team===state.focus).sort((a,b)=>{
+    const va = a[k], vb = b[k];
+    if(typeof va === "string" || typeof vb === "string") return dir * String(va||"").localeCompare(String(vb||""));
+    return dir * ((va||0) - (vb||0));
+  });
   document.getElementById("playersTitle").textContent = state.focus + " players";
   document.querySelector("#playerTable tbody").innerHTML = ps.map(p=>
     `<tr><td>${p.player}</td><td>${p.class||""}</td><td>${fmt(p.mpg)}</td><td>${fmt(p.pts_pg)}</td>` +
@@ -737,6 +742,12 @@ async function init(){
     const k = th.dataset.k;
     if(state.sortK===k) state.sortDir *= -1; else { state.sortK = k; state.sortDir = 1; }
     renderRatings();
+  }));
+  document.querySelectorAll("#playerTable th").forEach(th=> th.addEventListener("click", ()=>{
+    const k = th.dataset.k;
+    if(state.pSortK===k) state.pSortDir *= -1;
+    else { state.pSortK = k; state.pSortDir = (k==="player" || k==="class") ? 1 : -1; }
+    renderPlayers();
   }));
   renderFocus(); renderRatings();
 }
