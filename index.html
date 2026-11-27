@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#16140f">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <title>Hoops Report — College Basketball Ratings</title>
 <style>
   /* Dark theme only (Jeff, Nov 25). */
@@ -63,8 +66,9 @@
   .links{display:flex;flex-wrap:wrap;gap:8px}
   .links a{border:1px solid var(--border);border-radius:20px;padding:6px 13px;color:var(--muted);text-decoration:none;font-size:13.5px;background:var(--surface)}
   footer{color:var(--muted);font-size:12.5px;padding:4px 16px 28px;max-width:1180px;margin:0 auto}
-  svg text{font-size:10.5px;fill:var(--muted)}
-  .legend{font-size:12.5px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap;margin-top:4px}
+  svg text{font-size:14px;fill:var(--muted)}
+  .legend{font-size:12.5px;color:var(--muted);display:flex;gap:4px 16px;flex-wrap:wrap;margin-top:4px}
+  #top3Chips{display:flex;flex-wrap:wrap;gap:7px}
   .sw{display:inline-block;width:16px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
 </style>
 </head>
@@ -175,6 +179,8 @@
       <h2 style="margin:0;font-size:17px">The metrics, in plain terms</h2>
       <button class="gt" id="metricsClose" style="margin-left:auto">Close</button>
     </div>
+    <div id="metricsOne" style="display:none"></div>
+    <div id="metricsAll">
     <p class="hint">Everything is per 100 possessions, so fast and slow teams compare fairly. League average this season is about <span id="lgAvg">108</span> points per 100.</p>
     <table>
       <tbody>
@@ -187,6 +193,7 @@
         <tr><td style="text-align:left"><strong>Prior</strong></td><td style="text-align:left;white-space:normal">Early in the season, last season's final rating is blended in and fades out by game 27, so November ratings are steadier than a handful of games deserve.</td></tr>
       </tbody>
     </table>
+    </div>
   </div>
 </div>
 <footer id="foot"></footer>
@@ -290,7 +297,7 @@ function renderFocus(){
     series.push({label: cmp.team+" AdjD", color:"var(--accent2)", dash:true, points: cg.map((g,i)=>[i+1, g.adj_de])});
     legend += `<span><span class="sw" style="background:var(--accent2)"></span>${cmp.team}</span>`;
   }
-  document.getElementById("seasonChart").innerHTML = lineChart(series, {h:230});
+  document.getElementById("seasonChart").innerHTML = lineChart(series, {h:345});
   document.getElementById("seasonLegend").innerHTML = legend;
   renderLog(fg);
   renderPlayers();
@@ -433,13 +440,13 @@ function renderGT(d, el, focusName, focusHome){
       `<button class="gt gtb${mode==="points"?" on":""}" data-m="points">Points</button></div>` +
       `<p class="hint" id="gtread" style="margin:0 0 2px">Tap the chart to see the score at that moment.</p>`;
     if(mode === "margin"){
-      html += lineChart([{label: focusName + " margin", color:"var(--accent)", points: marginPts}], {h:200, zeroLine:true, vlines, x1:xEnd}) +
+      html += lineChart([{label: focusName + " margin", color:"var(--accent)", points: marginPts}], {h:300, zeroLine:true, vlines, x1:xEnd}) +
         `<div class="legend"><span><span class="sw" style="background:var(--accent)"></span>${focusName} margin (points, by game minute)</span><span>Dashed verticals: halftime · end of regulation${d.periods>2 ? " · overtime" : ""}</span></div>`;
     } else {
       html += lineChart([
         {label: focusPtsName, color:"var(--accent)", points: focusPts},
         {label: oppName, color:"var(--accent2)", points: oppPts}
-      ], {h:200, vlines, x1:xEnd}) +
+      ], {h:300, vlines, x1:xEnd}) +
         `<div class="legend"><span><span class="sw" style="background:var(--accent)"></span>${focusPtsName}</span><span><span class="sw" style="background:var(--accent2)"></span>${oppName}</span><span>Dashed verticals: halftime · end of regulation${d.periods>2 ? " · overtime" : ""}</span></div>`;
     }
     el.innerHTML = html;
@@ -465,7 +472,7 @@ function renderGT(d, el, focusName, focusHome){
         const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
         const x = 38 + (min / xEnd) * (1060 - 38 - 10);
         line.setAttribute("x1", x); line.setAttribute("x2", x);
-        line.setAttribute("y1", 10); line.setAttribute("y2", 200 - 24);
+        line.setAttribute("y1", 10); line.setAttribute("y2", 300 - 24);
         line.setAttribute("stroke", "var(--gt)"); line.setAttribute("stroke-width", "1.5");
         line.setAttribute("class", "gt-mark");
         svg.appendChild(line);
@@ -508,20 +515,24 @@ function askSwitchCompare(team){
     ()=>{ state.cmp = team; syncPickers(); renderFocus(); renderRatings(); window.scrollTo({top:0, behavior:"smooth"}); });
 }
 
-// One explainer pop-up for the group; tapping a stat card opens the SAME
-// pop-up with that metric's definition highlighted (no per-card pop-ups).
+// One explainer pop-up: the "What do these numbers mean?" button shows the
+// whole list; tapping a stat card shows ONLY that metric's definition.
 function openMetrics(key){
   const modal = document.getElementById("metricsModal");
   modal.style.display = "flex";
-  modal.querySelectorAll("tr[data-hl]").forEach(tr=>{ tr.removeAttribute("data-hl"); tr.style.background = ""; tr.style.outline = ""; });
-  if(key){
-    const row = document.getElementById("def-"+key);
-    if(row){
-      row.setAttribute("data-hl","1");
-      row.style.background = "var(--surface2)";
-      row.style.outline = "1px solid var(--accent)";
-      row.scrollIntoView({block:"center"});
-    }
+  const one = document.getElementById("metricsOne");
+  const all = document.getElementById("metricsAll");
+  const row = key ? document.getElementById("def-"+key) : null;
+  if(row){
+    const name = row.children[0].innerHTML, desc = row.children[1].innerHTML;
+    one.innerHTML = `<p style="margin:2px 0 6px"><strong style="font-size:16px">${name}</strong></p>` +
+      `<p style="margin:0;line-height:1.55">${desc}</p>` +
+      `<p class="hint" style="margin-top:12px">Everything is per 100 possessions, so fast and slow teams compare fairly. League average this season is about ${document.getElementById("lgAvg").textContent} points per 100.</p>`;
+    one.style.display = "block";
+    all.style.display = "none";
+  } else {
+    one.style.display = "none";
+    all.style.display = "block";
   }
 }
 function wireCardClicks(container){
@@ -537,7 +548,7 @@ function renderTop3(){
     .sort((a,b)=> asc ? a[k]-b[k] : b[k]-a[k]).slice(0,3);
   const val = r => k==="AdjEM" ? sgn(r[k]) : fmt(r[k], k==="pace"?1:1);
   document.getElementById("top3Chips").innerHTML = top.map((r,i)=>
-    `<button class="gt cmpchip${r.team===state.cmp?" on":""}" data-team="${r.team}" style="margin-right:6px">#${i+1} ${r.team} · ${val(r)}</button>`).join("");
+    `<button class="gt cmpchip${r.team===state.cmp?" on":""}" data-team="${r.team}">#${i+1} ${r.team} · ${val(r)}</button>`).join("");
   document.querySelectorAll("#top3Chips button").forEach(b=> b.addEventListener("click", ()=>{
     if(b.dataset.team === state.cmp){ clearCompare(); return; } // tap the selected chip again to clear
     state.cmp = b.dataset.team;
@@ -730,6 +741,13 @@ async function init(){
   renderFocus(); renderRatings();
 }
 init().catch(e=>{ document.getElementById("updated").textContent = "Could not load data: " + e.message; });
+
+// PWA install support: a pass-through service worker (no caching, so the
+// daily data is never stale). Registration only works in secure contexts;
+// it quietly does nothing until the HTTPS certificate is in place.
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
 </script>
 </body>
 </html>
