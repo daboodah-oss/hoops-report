@@ -44,6 +44,11 @@
   tbody tr{cursor:pointer}
   tbody tr:hover{background:var(--surface2)}
   tr.focus{background:var(--surface2);font-weight:600}
+  #logTable{font-size:12.5px}
+  #logTable th,#logTable td{padding:5px 6px}
+  button.scorebtn{font-size:12.5px;padding:3px 8px}
+  button.scorebtn.win{color:var(--good)}
+  button.scorebtn.loss{color:var(--bad)}
   .win{color:var(--good);font-weight:700}
   .loss{color:var(--bad);font-weight:700}
   .gt-row td{background:var(--surface2);cursor:default;text-align:left;white-space:normal}
@@ -107,9 +112,9 @@
 
   <section id="gamelog">
     <div class="sec-head"><h2>Game log</h2>
-    <p class="hint">Adjusted offense / defense for the game (points per 100 possessions, opponent and venue adjusted). Click a game to load that opponent as the compare team. Every game carries a GameTracker scoring chart (Indiana's are stored; other teams' load live from ESPN when opened).</p></div>
+    <p class="hint">Adjusted offense / defense for the game (points per 100 possessions, opponent and venue adjusted). Tap a row to load that opponent as the compare team. Tap the score to open its GameTracker scoring chart (Indiana's are stored; other teams' load live from ESPN when opened). Score is green for a win, red for a loss.</p></div>
     <div class="scroll"><table id="logTable">
-      <thead><tr><th>Date</th><th class="l">Opponent</th><th>Site</th><th>Score</th><th>Result</th><th>AdjO</th><th>AdjD</th><th></th></tr></thead>
+      <thead><tr><th>Date</th><th class="l">Opponent</th><th>Site</th><th>Score</th><th>AdjO</th><th>AdjD</th></tr></thead>
       <tbody></tbody>
     </table></div>
   </section>
@@ -296,15 +301,18 @@ function renderLog(fg){
   Object.values(state.gtIndex).forEach(g=>{ gtByOppDate[g.date] = g; });
   tb.innerHTML = fg.map((g,i)=>{
     const w = g.pts > g.allowed;
-    const site = g.venue==="H" ? "Home" : g.venue==="A" ? "Away" : "Neutral";
-    let gtBtn = "";
+    const site = g.venue==="H" ? "H" : g.venue==="A" ? "A" : "N";
+    const prefix = g.venue==="A" ? "at " : "vs ";
     const cand = state.focus==="Indiana" ? Object.values(state.gtIndex).find(x=>x.date===g.date) : null;
-    if(cand) gtBtn = `<button class="gt gtb" data-gt="${cand.id}">GameTracker</button>`;
-    else gtBtn = `<button class="gt gtb" data-live="${i}">GameTracker</button>`;
-    return `<tr data-i="${i}"><td>${g.date.slice(5)}</td><td class="l">${g.opp}</td><td>${site}</td>` +
-      `<td>${g.pts}-${g.allowed}</td><td class="${w?'win':'loss'}">${w?'W':'L'}</td>` +
-      `<td>${fmt(g.adj_oe)}</td><td>${fmt(g.adj_de)}</td><td>${gtBtn}</td></tr>` +
-      `<tr class="gt-row" id="gtrow-${i}" style="display:none"><td colspan="8"><div id="gtchart-${i}"></div></td></tr>`;
+    const gtAttr = cand ? `data-gt="${cand.id}"` : `data-live="${i}"`;
+    // The score itself is the GameTracker button: dropping the separate
+    // button column (and the Result column, which the score's color now
+    // carries) lets the whole log fit a phone screen without sideways scroll.
+    const scoreBtn = `<button class="gt gtb scorebtn ${w?'win':'loss'}" ${gtAttr} title="Open GameTracker">${g.pts}-${g.allowed}</button>`;
+    return `<tr data-i="${i}"><td>${g.date.slice(5)}</td><td class="l">${prefix}${g.opp}</td><td>${site}</td>` +
+      `<td>${scoreBtn}</td>` +
+      `<td>${fmt(g.adj_oe)}</td><td>${fmt(g.adj_de)}</td></tr>` +
+      `<tr class="gt-row" id="gtrow-${i}" style="display:none"><td colspan="6"><div id="gtchart-${i}"></div></td></tr>`;
   }).join("");
   tb.querySelectorAll("tr[data-i]").forEach(tr=> tr.addEventListener("click", ()=>{
     const g = fg[+tr.dataset.i];
@@ -402,10 +410,20 @@ function renderGT(d, el, focusName, focusHome){
   const oppPts = [[0,0]].concat(d.plays.map(p=>
     [elapsedMin(p), focusHome ? p.away : p.home]));
   const caption = `${d.awayName} at ${d.homeName} — final ${d.homeScore}-${d.awayScore} (home first).`;
+  function clockText(min){
+    // elapsed game minutes -> period + clock remaining, e.g. "2nd half, 7:23 left"
+    let per, remain, label;
+    if(min < 20){ per = 1; remain = 20 - min; label = "1st half"; }
+    else if(min < 40){ per = 2; remain = 40 - min; label = "2nd half"; }
+    else { const ot = Math.floor((min - 40) / 5) + 1; per = 2 + ot; remain = 40 + ot*5 - min; label = ot === 1 ? "overtime" : `overtime ${ot}`; }
+    const s = Math.max(0, Math.round(remain * 60));
+    return `${label}, ${Math.floor(s/60)}:${String(s%60).padStart(2,"0")} left`;
+  }
   function draw(mode){
     let html = `<p class="hint" style="margin-bottom:4px">${caption}</p>` +
       `<div style="margin-bottom:6px"><button class="gt gtb${mode==="margin"?" on":""}" data-m="margin">Margin</button> ` +
-      `<button class="gt gtb${mode==="points"?" on":""}" data-m="points">Points</button></div>`;
+      `<button class="gt gtb${mode==="points"?" on":""}" data-m="points">Points</button></div>` +
+      `<p class="hint" id="gtread" style="margin:0 0 2px">Tap the chart to see the score at that moment.</p>`;
     if(mode === "margin"){
       html += lineChart([{label: focusName + " margin", color:"var(--accent)", points: marginPts}], {h:200, zeroLine:true, vlines, x1:xEnd}) +
         `<div class="legend"><span><span class="sw" style="background:var(--accent)"></span>${focusName} margin (points, by game minute)</span><span>Dashed verticals: halftime · end of regulation${d.periods>2 ? " · overtime" : ""}</span></div>`;
@@ -418,6 +436,33 @@ function renderGT(d, el, focusName, focusHome){
     }
     el.innerHTML = html;
     el.querySelectorAll("button.gt").forEach(b=> b.addEventListener("click", ()=> draw(b.dataset.m)));
+    // Tap-to-inspect: a tap anywhere on the chart drops a marker line and
+    // reads out the score at that moment (last scoring play at or before it).
+    const svg = el.querySelector("svg");
+    const read = el.querySelector("#gtread");
+    if(svg && read){
+      svg.style.cursor = "crosshair";
+      svg.addEventListener("pointerdown", ev=>{
+        const rect = svg.getBoundingClientRect();
+        const vx = (ev.clientX - rect.left) * (1060 / rect.width); // viewBox units
+        const min = Math.max(0, Math.min(xEnd, (vx - 38) / (1060 - 38 - 10) * xEnd));
+        let hs = 0, as = 0;
+        for(const p of d.plays){ if(p.t / 60 <= min){ hs = p.home; as = p.away; } else break; }
+        const fs = focusHome ? hs : as, os = focusHome ? as : hs;
+        const margin = fs - os;
+        read.textContent = mode === "margin"
+          ? `${clockText(min)} — ${focusName} ${margin >= 0 ? "+" : ""}${margin} (${focusName} ${fs}, ${oppName} ${os})`
+          : `${clockText(min)} — ${focusName} ${fs}, ${oppName} ${os}`;
+        svg.querySelectorAll(".gt-mark").forEach(m=> m.remove());
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        const x = 38 + (min / xEnd) * (1060 - 38 - 10);
+        line.setAttribute("x1", x); line.setAttribute("x2", x);
+        line.setAttribute("y1", 10); line.setAttribute("y2", 200 - 24);
+        line.setAttribute("stroke", "var(--gt)"); line.setAttribute("stroke-width", "1.5");
+        line.setAttribute("class", "gt-mark");
+        svg.appendChild(line);
+      });
+    }
   }
   draw("margin");
 }
