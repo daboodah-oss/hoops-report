@@ -154,7 +154,7 @@
 </main>
 <div id="confirmModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:50;align-items:flex-start;justify-content:center;padding:28px 14px">
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;max-width:420px;width:100%;padding:20px 22px">
-    <h2 style="margin:0 0 8px;font-size:16.5px">Change primary team?</h2>
+    <h2 style="margin:0 0 8px;font-size:16.5px" id="confirmTitle">Change primary team?</h2>
     <p class="hint" id="confirmText" style="margin-bottom:16px">—</p>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="gt" id="confirmNo" style="color:var(--muted)">Cancel</button>
@@ -308,12 +308,7 @@ function renderLog(fg){
   }).join("");
   tb.querySelectorAll("tr[data-i]").forEach(tr=> tr.addEventListener("click", ()=>{
     const g = fg[+tr.dataset.i];
-    if(g && g.opp !== state.focus){
-      state.cmp = g.opp;
-      syncPickers();
-      renderFocus(); renderRatings();
-      window.scrollTo({top:0, behavior:"smooth"});
-    }
+    if(g) askSwitchCompare(g.opp);
   }));
   tb.querySelectorAll("button.gt").forEach(b=> b.addEventListener("click", async ev=>{
     ev.stopPropagation();
@@ -427,24 +422,37 @@ function renderGT(d, el, focusName, focusHome){
   draw("margin");
 }
 
-// Clicking a team in the All Teams table asks before switching the primary
-// team (easy to tap by accident while scrolling); the dropdown picker and
-// the game-log compare click act immediately, since those are deliberate.
-let pendingPrimary = "";
-function askSwitchPrimary(team){
-  if(!team || team === state.focus) return;
-  pendingPrimary = team;
-  document.getElementById("confirmText").textContent =
-    `Make ${team} the primary team? The focus section, chart, game log, and players will switch from ${state.focus} to ${team}.`;
+// One confirm pop-up, two uses: switching the primary team from the All
+// Teams table, and changing the compare team from a game-log click. Both
+// are easy to trigger by accident while scrolling, so both ask first. The
+// pickers and chips act immediately, since those are deliberate.
+let pendingConfirm = null;
+function showConfirm(title, text, yesLabel, action){
+  pendingConfirm = action;
+  document.getElementById("confirmTitle").textContent = title;
+  document.getElementById("confirmText").textContent = text;
+  document.getElementById("confirmYes").textContent = yesLabel;
   document.getElementById("confirmModal").style.display = "flex";
 }
-function applySwitchPrimary(){
+function closeConfirm(){
   document.getElementById("confirmModal").style.display = "none";
-  if(!pendingPrimary) return;
-  state.focus = pendingPrimary; pendingPrimary = "";
-  syncPickers();
-  renderFocus(); renderRatings();
-  window.scrollTo({top:0, behavior:"smooth"});
+  pendingConfirm = null;
+}
+function askSwitchPrimary(team){
+  if(!team || team === state.focus) return;
+  showConfirm("Change primary team?",
+    `Make ${team} the primary team? The focus section, chart, game log, and players will switch from ${state.focus} to ${team}.`,
+    "Switch team",
+    ()=>{ state.focus = team; syncPickers(); renderFocus(); renderRatings(); window.scrollTo({top:0, behavior:"smooth"}); });
+}
+function askSwitchCompare(team){
+  if(!team || team === state.focus || team === state.cmp) return;
+  showConfirm("Change compare team?",
+    state.cmp
+      ? `Make ${team} the compare team? The compare cards and chart lines will switch from ${state.cmp} to ${team}.`
+      : `Make ${team} the compare team? Its cards and chart lines will appear next to ${state.focus}.`,
+    "Switch compare",
+    ()=>{ state.cmp = team; syncPickers(); renderFocus(); renderRatings(); window.scrollTo({top:0, behavior:"smooth"}); });
 }
 
 // One explainer pop-up for the group; tapping a stat card opens the SAME
@@ -642,9 +650,9 @@ async function init(){
   modal.addEventListener("click", e=>{ if(e.target === modal) modal.style.display = "none"; });
   document.addEventListener("keydown", e=>{ if(e.key === "Escape") modal.style.display = "none"; });
   const cModal = document.getElementById("confirmModal");
-  document.getElementById("confirmYes").addEventListener("click", applySwitchPrimary);
-  document.getElementById("confirmNo").addEventListener("click", ()=>{ cModal.style.display = "none"; pendingPrimary = ""; });
-  cModal.addEventListener("click", e=>{ if(e.target === cModal){ cModal.style.display = "none"; pendingPrimary = ""; } });
+  document.getElementById("confirmYes").addEventListener("click", ()=>{ const a = pendingConfirm; closeConfirm(); if(a) a(); });
+  document.getElementById("confirmNo").addEventListener("click", closeConfirm);
+  cModal.addEventListener("click", e=>{ if(e.target === cModal) closeConfirm(); });
   document.getElementById("foot").textContent =
     "Our own ratings, computed from public box scores. AdjO/AdjD are points per 100 possessions, adjusted for opponent and venue. Barthag is the chance of beating an average Division I team on a neutral floor.";
   state.ratings.forEach(r=>{ r.apRk = 999; r.cpRk = 999; });
