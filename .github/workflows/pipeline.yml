@@ -1,11 +1,11 @@
 name: daily-pipeline
 # Collect -> regression-test -> rate -> commit data/<season>/.
-# Manual trigger only for now.  Turn the schedule on at brief build step 5 (after the
-# page + QA pass exist), then soak for a week of daily runs before calling it live.
+# Live on the daily schedule since the 2026-11-27 launch (brief build step 5).
+# Manual trigger stays available. Soak: watch the first week of daily runs.
 on:
   workflow_dispatch:
-  # schedule:
-  #   - cron: "17 11 * * *"   # 6:17 AM ET (standard time), after West Coast games finalize
+  schedule:
+    - cron: "17 11 * * *"   # 6:17 AM ET (standard time), after West Coast games finalize
 permissions:
   contents: write
 concurrency:
