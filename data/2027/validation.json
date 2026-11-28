@@ -1,32 +1,32 @@
 {
   "teams_matched": 365,
-  "spearman_adjem": 0.9393834999494107,
-  "spearman_barthag": 0.9386577267331816,
-  "pearson_adjem": 0.9479894085933034,
-  "mean_abs_rank_diff_all": 26.904109589041095,
-  "top30_mean_abs_rank_diff": 8.2,
+  "spearman_adjem": 0.9388803202187439,
+  "spearman_barthag": 0.9387956754675822,
+  "pearson_adjem": 0.9462300573158666,
+  "mean_abs_rank_diff_all": 26.964383561643835,
+  "top30_mean_abs_rank_diff": 7.633333333333334,
   "top30_overlap": 23,
-  "adjem_sd_ours": 12.980159465385901,
-  "adjem_sd_torvik": 12.180107159571998,
-  "adjem_mae": 3.284942097080754,
+  "adjem_sd_ours": 12.958461634135213,
+  "adjem_sd_torvik": 12.516331009846429,
+  "adjem_mae": 3.322795682925875,
   "indiana": {
-    "ours_rank": 35,
-    "torvik_rank": 29,
+    "ours_rank": 33,
+    "torvik_rank": 22,
     "ours": [
-      119.8,
+      119.7,
       101.4,
-      18.4
+      18.3
     ],
     "torvik": [
-      121.3,
-      101.0,
-      20.3
+      122.3,
+      100.3,
+      22.0
     ]
   },
   "accept": {
     "spearman>=0.98": false,
     "top30<=3.0": false,
-    "indiana<=10": true
+    "indiana<=10": false
   },
   "passed": false,
   "season": 2027,
