@@ -41,7 +41,8 @@
   #pollNote{flex-basis:100%}
   .caplabel{font-size:11.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
   #top3Bar{align-items:flex-start}
-  .qc-left{display:flex;flex-direction:column;gap:4px;flex:0 1 150px;min-width:0}
+  .qc-left{display:flex;flex-direction:column;gap:4px;flex:0 0 190px;min-width:0}
+  .qc-left .caplabel{white-space:nowrap}
   .qc-left select{width:100%}
   thead th{position:sticky;top:0;z-index:3}
   .stickybox{max-height:76vh;overflow-y:auto}
@@ -109,11 +110,7 @@
 <main>
   <section id="focus">
     <div class="sec-head"><h2>Team focus &amp; compare</h2><p class="hint">Pick a primary team, add a compare team, and read the season chart. Red is the primary team, blue is the compare team, everywhere on this page.</p></div>
-    <div class="controls">
-      <label class="grow">Conference <select id="confFilter"><option value="">All conferences</option></select></label>
-      <label class="grow">Poll <select id="pollFilter"><option value="">All teams</option><option value="ap25">AP Top 25</option><option value="cp25">Coaches Top 25</option><option value="either25">In either Top 25</option><option value="votes">Receiving votes</option></select></label>
-      <span class="hint" id="pollNote">Polls loading…</span>
-    </div>
+    <p class="hint" id="pollNote" style="margin:0 0 8px">Polls loading…</p>
     <div class="controls">
       <label class="wide">Team <span class="combo"><input id="teamPick" type="text" autocomplete="off" placeholder="Search teams…"><span class="combo-list" id="teamList" hidden></span></span></label>
       <label class="wide">Compare <span class="combo"><input id="cmpPick" type="text" autocomplete="off" placeholder="None"><span class="combo-list" id="cmpList" hidden></span></span></label>
@@ -746,27 +743,12 @@ async function loadPolls(){
     document.getElementById("pollNote").textContent = "Polls unavailable right now.";
   }
 }
-function pollPass(team){
-  const f = document.getElementById("pollFilter").value;
-  if(!f) return true;
-  if(!state.polls) return true;
-  const p = state.polls;
-  if(f === "ap25") return p.ap.has(team);
-  if(f === "cp25") return p.cp.has(team);
-  if(f === "either25") return p.ap.has(team) || p.cp.has(team);
-  if(f === "votes") return p.apVotes.has(team) || p.cpVotes.has(team);
-  return true;
-}
-// Cascading filters: Conference and Poll narrow the Team/Compare pickers.
-// The current focus and compare teams always stay in the list, so a filter
-// can never yank the page out from under what you're looking at.
+// The pickers list every team, alphabetical: that's the order you hunt
+// for a team in. Each row still carries the team's rank, so standing
+// isn't lost. (The Conference/Poll narrowing filters were removed
+// 2026-11-27 at Jeff's call; the searchable boxes made them redundant.)
 function populatePickers(){
-  const conf = document.getElementById("confFilter").value;
-  const keep = new Set([state.focus, state.cmp].filter(Boolean));
-  // Alphabetical: that's the order you hunt for a team in. Each row still
-  // carries the team's rank, so standing isn't lost.
   state.pickerNames = state.ratings.slice().sort((a,b)=> a.team.localeCompare(b.team))
-    .filter(r=> (!conf || r.conf === conf) && (pollPass(r.team) || keep.has(r.team)))
     .map(r=> r.team);
   syncPickers();
 }
@@ -836,16 +818,12 @@ async function init(){
   document.getElementById("foot").textContent =
     "Our own ratings, computed from public box scores. AdjO/AdjD are points per 100 possessions, adjusted for opponent and venue. Barthag is the chance of beating an average Division I team on a neutral floor.";
   state.ratings.forEach(r=>{ r.apRk = 999; r.cpRk = 999; });
-  const confSel = document.getElementById("confFilter");
-  [...new Set(state.ratings.map(r=>r.conf))].sort().forEach(c=> confSel.add(new Option(c, c)));
   populatePickers();
   makeCombo(document.getElementById("teamPick"), document.getElementById("teamList"),
     n=>{ if(n){ state.focus = n; renderFocus(); renderRatings(); } }, false);
   makeCombo(document.getElementById("cmpPick"), document.getElementById("cmpList"),
     n=>{ state.cmp = n; renderFocus(); }, true);
   document.getElementById("cmpClear").addEventListener("click", clearCompare);
-  confSel.addEventListener("change", populatePickers);
-  document.getElementById("pollFilter").addEventListener("change", populatePickers);
   loadPolls();
   document.getElementById("top3Metric").addEventListener("change", renderTop3);
   document.getElementById("teamSearch").addEventListener("input", e=>{ state.query = e.target.value; renderRatings(); });
