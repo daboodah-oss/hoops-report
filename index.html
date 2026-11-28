@@ -62,6 +62,7 @@
   button.scorebtn{font-size:12.5px;padding:3px 8px}
   button.scorebtn.winb{border-color:var(--good)}
   button.scorebtn.lossb{border-color:var(--bad)}
+  .aprk{color:var(--muted);font-size:11px;font-weight:700}
   .sc-f{color:var(--accent)}
   .sc-o{color:var(--accent2)}
   .win{color:var(--good);font-weight:700}
@@ -129,7 +130,7 @@
 
   <section id="gamelog">
     <div class="sec-head"><h2>Game log</h2>
-    <p class="hint">Adjusted offense / defense for the game (points per 100 possessions, opponent and venue adjusted). Tap a row to load that opponent as the compare team. Tap the score to open its GameTracker scoring chart (Indiana's are stored; other teams' load live from ESPN when opened). In the score, the home team is listed first, your team's score is red and the opponent's blue, and the pill's border is green for a win, red for a loss. "@" means an away game and "(N)" a neutral site.</p></div>
+    <p class="hint">Adjusted offense / defense for the game (points per 100 possessions, opponent and venue adjusted). Tap a row to load that opponent as the compare team. Tap the score to open its GameTracker scoring chart (Indiana's are stored; other teams' load live from ESPN when opened). In the score, the home team is listed first, your team's score is red and the opponent's blue, and the pill's border is green for a win, red for a loss. "@" means an away game and "(N)" a neutral site. A # after a team's name is its current AP ranking.</p></div>
     <div class="scroll stickybox"><table id="logTable">
       <thead><tr><th>Date</th><th class="l">Opponent</th><th>Score</th><th>AdjO</th><th>AdjD</th></tr></thead>
       <tbody></tbody>
@@ -324,7 +325,9 @@ function renderLog(fg){
     // Venue rides in the opponent wording (no Site column): "vs" home,
     // "@" away, "vs ... (N)" neutral.
     const prefix = g.venue==="A" ? "@ " : "vs ";
-    const suffix = g.venue==="N" ? ` <span style="color:var(--muted)">(N)</span>` : "";
+    const apRk = state.polls ? state.polls.ap.get(g.opp) : null;
+    const rkSuffix = apRk ? ` <span class="aprk">#${apRk}</span>` : "";
+    const suffix = (g.venue==="N" ? ` <span style="color:var(--muted)">(N)</span>` : "");
     const cand = state.focus==="Indiana" ? Object.values(state.gtIndex).find(x=>x.date===g.date) : null;
     const gtAttr = cand ? `data-gt="${cand.id}"` : `data-live="${i}"`;
     // The score itself is the GameTracker button: dropping the separate
@@ -335,7 +338,7 @@ function renderLog(fg){
     const fSpan = `<span class="sc-f">${g.pts}</span>`, oSpan = `<span class="sc-o">${g.allowed}</span>`;
     const scoreHtml = g.venue==="A" ? `${oSpan}-${fSpan}` : `${fSpan}-${oSpan}`;
     const scoreBtn = `<button class="gt gtb scorebtn ${w?'winb':'lossb'}" ${gtAttr} title="Open GameTracker">${scoreHtml}</button>`;
-    return `<tr data-i="${i}"><td>${g.date.slice(5)}</td><td class="l">${prefix}${g.opp}${suffix}</td>` +
+    return `<tr data-i="${i}"><td>${g.date.slice(5)}</td><td class="l">${prefix}${g.opp}${rkSuffix}${suffix}</td>` +
       `<td>${scoreBtn}</td>` +
       `<td>${fmt(g.adj_oe)}</td><td>${fmt(g.adj_de)}</td></tr>` +
       `<tr class="gt-row" id="gtrow-${i}" style="display:none"><td colspan="5"><div id="gtchart-${i}"></div></td></tr>`;
