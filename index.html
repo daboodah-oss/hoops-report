@@ -40,7 +40,9 @@
   .controls .combo{display:block}
   #pollNote{flex-basis:100%}
   .caplabel{font-size:11.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
-  #top3Chips{flex-basis:100%}
+  #top3Bar{align-items:flex-start}
+  .qc-left{display:flex;flex-direction:column;gap:4px;flex:0 1 168px;min-width:0}
+  .qc-left select{width:100%}
   thead th{position:sticky;top:0;z-index:3}
   .stickybox{max-height:76vh;overflow-y:auto}
   /* Frozen identifier columns for the wide tables: they stay pinned while
@@ -82,7 +84,7 @@
   .win{color:var(--good);font-weight:700}
   .loss{color:var(--bad);font-weight:700}
   .gt-row td{background:var(--surface2);cursor:default;text-align:left;white-space:normal}
-  button.gt{font-size:12px;padding:3px 9px;border:1px solid var(--border);border-radius:20px;background:var(--surface);color:var(--accent);cursor:pointer}
+  button.gt{font-size:12px;padding:3px 9px;border:1.5px solid #6f675a;border-radius:20px;background:var(--surface);color:var(--accent);cursor:pointer}
   button.gtb{color:var(--gt);border-color:var(--gt)}
   button.gtb.on{background:var(--gt);color:#16140f;font-weight:700}
   button.cmpchip{color:var(--accent2);border-color:var(--accent2)}
@@ -94,7 +96,7 @@
   svg text{font-size:20px;fill:var(--muted)}
   .mpara{margin:0 0 8px;line-height:1.5}
   .legend{font-size:12.5px;color:var(--muted);display:flex;gap:4px 16px;flex-wrap:wrap;margin-top:4px}
-  #top3Chips{display:flex;flex-wrap:wrap;gap:7px}
+  #top3Chips{display:flex;flex-wrap:wrap;gap:7px;flex:1 1 auto;align-content:flex-start}
   .sw{display:inline-block;width:16px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
 </style>
 </head>
@@ -117,13 +119,15 @@
       <button class="gt" id="cmpClear" style="color:var(--muted);display:none">Clear compare</button>
     </div>
     <div class="controls" id="top3Bar">
-      <span class="caplabel">Quick compare, top 3 by</span>
-      <select id="top3Metric">
-        <option value="AdjEM">Overall (AdjEM)</option>
-        <option value="AdjOE">Offense (AdjO)</option>
-        <option value="AdjDE">Defense (AdjD)</option>
-        <option value="pace">Pace</option>
-      </select>
+      <div class="qc-left">
+        <span class="caplabel">Quick compare, top 3 by</span>
+        <select id="top3Metric">
+          <option value="AdjEM">Overall (AdjEM)</option>
+          <option value="AdjOE">Offense (AdjO)</option>
+          <option value="AdjDE">Defense (AdjD)</option>
+          <option value="pace">Pace</option>
+        </select>
+      </div>
       <span id="top3Chips"></span>
     </div>
     <h2 id="focusName">—</h2>
@@ -135,8 +139,8 @@
       <div class="cards" id="cmpCards"></div>
     </div>
     <div style="display:flex;align-items:center;gap:10px;margin-top:14px">
-      <h3 style="margin:0;font-size:14.5px">Adjusted efficiency by game</h3>
-      <button class="gt" id="metricsBtn" style="margin-left:auto;color:var(--muted)">What do these numbers mean?</button>
+      <h3 style="margin:0;font-size:14.5px;white-space:nowrap">Efficiency by game</h3>
+      <button class="gt" id="metricsBtn" style="margin-left:auto;color:var(--text);border:1.5px solid #6f675a;white-space:nowrap">What do these numbers mean?</button>
     </div>
     <p class="hint" id="seasonRead" style="margin:0 0 2px">Tap the chart to see a game's numbers.</p>
     <div id="seasonChart"></div>
