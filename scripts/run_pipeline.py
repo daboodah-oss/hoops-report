@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import pandas as pd  # noqa: E402
 
-from hoops import config, engine, espn, ingest, parse, players, validate  # noqa: E402
+from hoops import config, engine, espn, ingest, parse, players, rawcache, validate  # noqa: E402
 
 FIRST_SEASON = 2024   # oldest season we build; it runs without a prior
 
@@ -100,6 +100,8 @@ def run_season(year: int, current: int, log=print) -> dict:
         meta["gametracker"] = {"games": len(index), "unverified": bad}
         log(f"[{year}] gametracker: {len(index)} IU games, unverified={bad}")
 
+    # freshness proof: when each Torvik input was fetched, its checksum, collector or direct
+    meta["inputs"] = rawcache.provenance(config.RAW, list(rawcache.torvik_files(year)))
     (sd / "meta.json").write_text(json.dumps(meta, indent=2) + "\n")
     if year == config.VALIDATION_SEASON and not rep["passed"]:
         raise SystemExit(f"[{year}] FAILED acceptance band: {rep['accept']}")

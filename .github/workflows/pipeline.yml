@@ -1,13 +1,20 @@
 name: daily-pipeline
-# Collect -> regression-test -> rate -> commit data/<season>/.
-# Live on the daily schedule since the 2026-11-27 launch (brief build step 5).
-# Manual trigger stays available. Soak: watch the first week of daily runs.
+# Seed Torvik files from raw-cache -> regression-test -> rate -> commit data/<season>/.
+# Torvik returns 403 to Actions IPs, so a collector on an accepted network pushes the
+# three Torvik files to the raw-cache branch first (docs/torvik-fetch.md).
 on:
   workflow_dispatch:
+    inputs:
+      commit_route:
+        description: "auto = direct push, PR if refused; pr = always PR"
+        type: choice
+        options: [auto, pr]
+        default: auto
   schedule:
     - cron: "17 11 * * *"   # 6:17 AM ET (standard time), after West Coast games finalize
 permissions:
   contents: write
+  pull-requests: write
 concurrency:
   group: pipeline
   cancel-in-progress: false
@@ -21,12 +28,12 @@ jobs:
           python-version: "3.12"
       - run: pip install -r requirements.txt
       - run: python -m pytest -q
+      - name: Seed Torvik files from collector (raw-cache branch)
+        run: python scripts/seed_raw_cache.py
       - name: Run pipeline (current season)
         run: python scripts/run_pipeline.py
       - name: Commit data
-        run: |
-          git config user.name "hoops-report-bot"
-          git config user.email "actions@users.noreply.github.com"
-          git add data/
-          git diff --cached --quiet || git commit -m "data: daily update $(date -u +%F)"
-          git push
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT_ROUTE: ${{ inputs.commit_route || 'auto' }}
+        run: .github/scripts/commit_data.sh
