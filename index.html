@@ -49,11 +49,14 @@
   #playerTable td:first-child{background:#211e18;z-index:2}
   #playerTable th:first-child{z-index:4}
   #ratingsTable{border-collapse:separate;border-spacing:0}
-  td.fz{position:sticky;background:#211e18;z-index:2}
-  tr.focus td.fz{background:#2a2620}
-  th.fz{z-index:4}
-  td.fzb{box-shadow:inset -2px 0 0 #3d382e}
-  th.fzb{box-shadow:inset 0 -2px 0 #ece7dd,inset -2px 0 0 #3d382e}
+  /* Only the Team column freezes (Jeff's call): Rk/AP/CP scroll away and
+     slide under it. One sticky column at left:0 needs no measured offsets,
+     which is what made the four-column freeze fragile. Team cells are
+     capped narrower; the longest names get an ellipsis. */
+  td.fzT{position:sticky;left:0;background:#211e18;z-index:2;max-width:148px;overflow:hidden;text-overflow:ellipsis}
+  tr.focus td.fzT{background:#2a2620}
+  th.fzT{position:sticky;left:0;z-index:4;max-width:148px;box-shadow:inset 0 -2px 0 #ece7dd,inset -2px 0 0 #3d382e}
+  td.fzT{box-shadow:inset -2px 0 0 #3d382e}
   select,input[type=search],input[type=text]{font-size:15px;padding:7px 9px;border:1.5px solid #6f675a;border-radius:7px;background:var(--surface);color:var(--text)}
   .combo{position:relative;display:inline-block}
   .combo-list{position:absolute;left:0;top:calc(100% + 4px);min-width:240px;max-height:270px;overflow-y:auto;background:var(--surface2);border:1px solid var(--border);border-radius:9px;z-index:40;box-shadow:0 10px 28px rgba(0,0,0,.45);text-transform:none;letter-spacing:normal;font-weight:400}
@@ -164,7 +167,7 @@
     <div class="controls"><input type="search" id="teamSearch" placeholder="Search teams or conferences…"></div>
     <div class="scroll stickybox"><table id="ratingsTable">
       <thead><tr>
-        <th data-k="rank" class="fz">Rk</th><th data-k="apRk" class="fz">AP</th><th data-k="cpRk" class="fz">CP</th><th data-k="team" class="l fz fzb">Team</th><th data-k="conf" class="l">Conf</th>
+        <th data-k="rank">Rk</th><th data-k="apRk">AP</th><th data-k="cpRk">CP</th><th data-k="team" class="l fzT">Team</th><th data-k="conf" class="l">Conf</th>
         <th data-k="W">W</th><th data-k="L">L</th>
         <th data-k="AdjOE">AdjO</th><th data-k="AdjDE">AdjD</th><th data-k="AdjEM">AdjEM</th>
         <th data-k="Barthag">Barthag</th><th data-k="pace">Pace</th>
@@ -687,30 +690,11 @@ function renderRatings(){
     return state.sortDir * (va - vb);
   });
   document.querySelector("#ratingsTable tbody").innerHTML = rows.map(r=>
-    `<tr data-team="${r.team}" class="${r.team===state.focus?'focus':''}"><td class="fz">${r.rank}</td><td class="fz">${r.apRk<999?r.apRk:"—"}</td><td class="fz">${r.cpRk<999?r.cpRk:"—"}</td><td class="l fz fzb">${r.team}</td><td class="l">${confPill(r.conf)}</td>` +
+    `<tr data-team="${r.team}" class="${r.team===state.focus?'focus':''}"><td>${r.rank}</td><td>${r.apRk<999?r.apRk:"—"}</td><td>${r.cpRk<999?r.cpRk:"—"}</td><td class="l fzT">${r.team}</td><td class="l">${confPill(r.conf)}</td>` +
     `<td>${r.W}</td><td>${r.L}</td><td>${fmt(r.AdjOE)}</td><td>${fmt(r.AdjDE)}</td><td>${sgn(r.AdjEM)}</td>` +
     `<td>${fmt(r.Barthag,3)}</td><td>${fmt(r.pace)}</td></tr>`).join("");
   document.querySelectorAll("#ratingsTable tbody tr").forEach(tr=>
     tr.addEventListener("click", ()=> askSwitchPrimary(tr.dataset.team)));
-  freezeRatings();
-}
-
-// Pin the first four ratings columns (Rk, AP, CP, Team) at their natural
-// offsets so they stay visible while the table scrolls sideways. Offsets
-// are measured against the table's own left edge (an element's offsetLeft
-// is relative to its offsetParent, which shoved the frozen block sideways
-// when that was the page, not the table).
-function freezeRatings(){
-  const table = document.getElementById("ratingsTable");
-  const ths = [...table.querySelectorAll("thead th")].slice(0, 4);
-  if(!ths.length) return;
-  const box = table.closest(".stickybox");
-  const tLeft = table.getBoundingClientRect().left;
-  const sl = box ? box.scrollLeft : 0;
-  const lefts = ths.map(th=> Math.round(th.getBoundingClientRect().left - tLeft + sl));
-  table.querySelectorAll("tr").forEach(tr=>{
-    [...tr.children].slice(0, 4).forEach((c, i)=>{ c.style.left = lefts[i] + "px"; });
-  });
 }
 
 // Polls (AP + Coaches) load live from ESPN, same open API as GameTracker.
