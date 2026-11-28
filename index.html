@@ -43,14 +43,24 @@
   #top3Chips{flex-basis:100%}
   thead th{position:sticky;top:0;z-index:3}
   .stickybox{max-height:76vh;overflow-y:auto}
+  /* Frozen identifier columns for the wide tables: they stay pinned while
+     the rest of the table scrolls sideways. Backgrounds must be opaque. */
+  #playerTable th:first-child,#playerTable td:first-child{position:sticky;left:0}
+  #playerTable td:first-child{background:#211e18;z-index:2}
+  #playerTable th:first-child{z-index:4}
+  td.fz{position:sticky;background:#211e18;z-index:2}
+  tr.focus td.fz{background:#2a2620}
+  th.fz{z-index:4}
+  td.fzb{box-shadow:inset -2px 0 0 #3d382e}
+  th.fzb{box-shadow:inset 0 -2px 0 #ece7dd,inset -2px 0 0 #3d382e}
   select,input[type=search],input[type=text]{font-size:15px;padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text)}
   .combo{position:relative;display:inline-block}
-  .combo-list{position:absolute;left:0;top:calc(100% + 4px);min-width:240px;max-height:270px;overflow-y:auto;background:var(--surface2);border:1px solid var(--border);border-radius:9px;z-index:40;box-shadow:0 10px 28px rgba(0,0,0,.45)}
+  .combo-list{position:absolute;left:0;top:calc(100% + 4px);min-width:240px;max-height:270px;overflow-y:auto;background:var(--surface2);border:1px solid var(--border);border-radius:9px;z-index:40;box-shadow:0 10px 28px rgba(0,0,0,.45);text-transform:none;letter-spacing:normal;font-weight:400}
   .combo-item{display:flex;gap:8px;padding:9px 12px;cursor:pointer;font-size:14.5px;white-space:nowrap;color:var(--text)}
   .combo-item .rk{color:var(--muted);min-width:36px}
   .combo-item.sel,.combo-item:hover{background:#37321f}
   table{border-collapse:collapse;width:100%;font-size:13.5px}
-  th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+  th,td{padding:4px 8px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
   th:first-child,td:first-child{text-align:left}
   th.l,td.l{text-align:left}
   th{cursor:pointer;user-select:none;color:var(--text);font-weight:600;background:#3f3e3a;box-shadow:inset 0 -2px 0 #ece7dd}
@@ -58,7 +68,7 @@
   tbody tr:hover{background:var(--surface2)}
   tr.focus{background:var(--surface2);font-weight:600}
   #logTable{font-size:12.5px}
-  #logTable th,#logTable td{padding:5px 6px}
+  #logTable th,#logTable td{padding:4px 6px}
   button.scorebtn{font-size:12.5px;padding:3px 8px}
   button.scorebtn.winb{border-color:var(--good)}
   button.scorebtn.lossb{border-color:var(--bad)}
@@ -124,6 +134,7 @@
       <h3 style="margin:0;font-size:14.5px">Adjusted efficiency by game</h3>
       <button class="gt" id="metricsBtn" style="margin-left:auto;color:var(--muted)">What do these numbers mean?</button>
     </div>
+    <p class="hint" id="seasonRead" style="margin:0 0 2px">Tap the chart to see a game's numbers.</p>
     <div id="seasonChart"></div>
     <div class="legend" id="seasonLegend"></div>
   </section>
@@ -152,7 +163,7 @@
     <div class="controls"><input type="search" id="teamSearch" placeholder="Search teams or conferences…"></div>
     <div class="scroll stickybox"><table id="ratingsTable">
       <thead><tr>
-        <th data-k="rank">Rk</th><th data-k="apRk">AP</th><th data-k="cpRk">CP</th><th data-k="team" class="l">Team</th><th data-k="conf" class="l">Conf</th>
+        <th data-k="rank" class="fz">Rk</th><th data-k="apRk" class="fz">AP</th><th data-k="cpRk" class="fz">CP</th><th data-k="team" class="l fz fzb">Team</th><th data-k="conf" class="l">Conf</th>
         <th data-k="W">W</th><th data-k="L">L</th>
         <th data-k="AdjOE">AdjO</th><th data-k="AdjDE">AdjD</th><th data-k="AdjEM">AdjEM</th>
         <th data-k="Barthag">Barthag</th><th data-k="pace">Pace</th>
@@ -311,6 +322,51 @@ function renderFocus(){
   }
   document.getElementById("seasonChart").innerHTML = lineChart(series, {h:345});
   document.getElementById("seasonLegend").innerHTML = legend;
+  // Tap-to-inspect on the season chart: marker line + dots at the tapped
+  // game, with the AdjO/AdjD values read out above the chart.
+  (function(){
+    const svg = document.querySelector("#seasonChart svg");
+    const read = document.getElementById("seasonRead");
+    if(!svg || !read) return;
+    const cg = cmp ? state.games.filter(g=>g.team===state.cmp).sort((a,b)=> a.date<b.date?-1:1) : [];
+    const x1 = Math.max(fg.length, cg.length, 1);
+    let ys = [];
+    series.forEach(s=> s.points.forEach(p=> ys.push(p[1])));
+    let y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const pad = (y1 - y0) * 0.08 || 1; y0 -= pad; y1 += pad;
+    const X = g => 48 + (g - 1) / Math.max(1, x1 - 1) * (1060 - 48 - 10);
+    const Y = v => 10 + (y1 - v) / (y1 - y0) * (345 - 10 - 24);
+    svg.style.cursor = "crosshair";
+    svg.addEventListener("pointerdown", ev=>{
+      const rect = svg.getBoundingClientRect();
+      const vx = (ev.clientX - rect.left) * (1060 / rect.width);
+      const g = Math.max(1, Math.min(x1, Math.round(1 + (vx - 48) / (1060 - 48 - 10) * (x1 - 1))));
+      const parts = [];
+      if(fg[g-1]){
+        const gm = fg[g-1];
+        parts.push(`Game ${g} (${gm.venue==="A" ? "@ " : "vs "}${gm.opp}): ${state.focus} AdjO ${fmt(gm.adj_oe)} · AdjD ${fmt(gm.adj_de)}`);
+      }
+      if(cmp && cg[g-1]) parts.push(`${cmp} game ${g}: AdjO ${fmt(cg[g-1].adj_oe)} · AdjD ${fmt(cg[g-1].adj_de)}`);
+      if(parts.length) read.textContent = parts.join("  |  ");
+      svg.querySelectorAll(".sc-mark").forEach(m=> m.remove());
+      const ns = "http://www.w3.org/2000/svg";
+      const line = document.createElementNS(ns, "line");
+      line.setAttribute("x1", X(g)); line.setAttribute("x2", X(g));
+      line.setAttribute("y1", 10); line.setAttribute("y2", 345 - 24);
+      line.setAttribute("stroke", "var(--gt)"); line.setAttribute("stroke-width", "1.5");
+      line.setAttribute("class", "sc-mark");
+      svg.appendChild(line);
+      series.forEach(s=>{
+        const p = s.points.find(pt=> pt[0] === g);
+        if(!p) return;
+        const c = document.createElementNS(ns, "circle");
+        c.setAttribute("cx", X(g)); c.setAttribute("cy", Y(p[1])); c.setAttribute("r", 5);
+        c.setAttribute("fill", s.color); c.setAttribute("stroke", "#16140f"); c.setAttribute("stroke-width", "1.5");
+        c.setAttribute("class", "sc-mark");
+        svg.appendChild(c);
+      });
+    });
+  })();
   renderLog(fg);
   renderPlayers();
   renderTop3();
@@ -630,11 +686,23 @@ function renderRatings(){
     return state.sortDir * (va - vb);
   });
   document.querySelector("#ratingsTable tbody").innerHTML = rows.map(r=>
-    `<tr data-team="${r.team}" class="${r.team===state.focus?'focus':''}"><td>${r.rank}</td><td>${r.apRk<999?r.apRk:"—"}</td><td>${r.cpRk<999?r.cpRk:"—"}</td><td class="l">${r.team}</td><td class="l">${confPill(r.conf)}</td>` +
+    `<tr data-team="${r.team}" class="${r.team===state.focus?'focus':''}"><td class="fz">${r.rank}</td><td class="fz">${r.apRk<999?r.apRk:"—"}</td><td class="fz">${r.cpRk<999?r.cpRk:"—"}</td><td class="l fz fzb">${r.team}</td><td class="l">${confPill(r.conf)}</td>` +
     `<td>${r.W}</td><td>${r.L}</td><td>${fmt(r.AdjOE)}</td><td>${fmt(r.AdjDE)}</td><td>${sgn(r.AdjEM)}</td>` +
     `<td>${fmt(r.Barthag,3)}</td><td>${fmt(r.pace)}</td></tr>`).join("");
   document.querySelectorAll("#ratingsTable tbody tr").forEach(tr=>
     tr.addEventListener("click", ()=> askSwitchPrimary(tr.dataset.team)));
+  freezeRatings();
+}
+
+// Pin the first four ratings columns (Rk, AP, CP, Team) at their natural
+// offsets so they stay visible while the table scrolls sideways.
+function freezeRatings(){
+  const ths = [...document.querySelectorAll("#ratingsTable thead th")].slice(0, 4);
+  if(!ths.length) return;
+  const lefts = ths.map(th=> th.offsetLeft);
+  document.querySelectorAll("#ratingsTable tr").forEach(tr=>{
+    [...tr.children].slice(0, 4).forEach((c, i)=>{ c.style.left = lefts[i] + "px"; });
+  });
 }
 
 // Polls (AP + Coaches) load live from ESPN, same open API as GameTracker.
